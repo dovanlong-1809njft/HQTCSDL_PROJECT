@@ -1,0 +1,4 @@
+-- Kiểm thử quyền SQL
+-- SQL Server / T-SQL. TRẠNG THÁI: KHUNG, CHƯA TRIỂN KHAI.
+-- TODO: Dùng tài khoản ứng dụng kiểm tra quyền được cấp/từ chối; API test kiểm tra quyền gia đình.
+-- Chỉ chạy trên CSDL demo sau khi đã viết và rà soát mã.

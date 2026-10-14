@@ -1,0 +1,5 @@
+-- Kiểm thử gia phả
+-- SQL Server / T-SQL. TRẠNG THÁI: KHUNG, CHƯA TRIỂN KHAI.
+-- TODO: Chu trình A→B→C→A, tự làm cha, khác gia đình, trùng hôn nhân.
+-- TODO: Hai phiên đồng thời thêm A→B và B→A phải có cơ chế bảo vệ.
+-- Chỉ chạy trên CSDL demo sau khi đã viết và rà soát mã.

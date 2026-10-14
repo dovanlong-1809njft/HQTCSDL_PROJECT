@@ -1,0 +1,24 @@
+TỪ ĐIỂN NHANH
+API = Giao diện lập trình ứng dụng
+Backend = Phần xử lý phía máy chủ
+Frontend = Phần giao diện người dùng
+Database / DB = Cơ sở dữ liệu
+Router = Bộ định tuyến, nhận yêu cầu API
+Schema = Khuôn mẫu kiểm tra dữ liệu API (trong FastAPI)
+Repository = Lớp truy xuất cơ sở dữ liệu
+Service = Lớp xử lý nghiệp vụ
+Transaction = Giao tác
+Commit = Xác nhận lưu giao tác
+Rollback = Hủy thay đổi của giao tác
+Concurrency = Truy cập đồng thời
+Constraint = Ràng buộc dữ liệu
+Index = Chỉ mục tăng tốc truy vấn
+Stored Procedure = Thủ tục lưu trữ
+View = Khung nhìn
+PWA = Ứng dụng Web tiến bộ/có thể cài đặt tùy điều kiện
+JWT = Token xác thực dạng JSON Web Token
+CI = Tích hợp liên tục, kiểm tra tự động
+Branch = Nhánh Git
+Commit = Ghi nhận phiên bản
+Push = Đẩy commit lên remote
+Pull Request = Yêu cầu hợp nhất thay đổi

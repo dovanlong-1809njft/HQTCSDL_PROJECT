@@ -1,0 +1,6 @@
+-- Thủ tục nghiệp vụ
+-- SQL Server / T-SQL. TRẠNG THÁI: KHUNG, CHƯA TRIỂN KHAI.
+-- TODO: Thêm người+quan hệ, duyệt membership, RSVP/chỗ cuối, cập nhật và audit.
+-- TODO: SET XACT_ABORT ON, TRY/CATCH, BEGIN TRAN, COMMIT, ROLLBACK; THROW khi lỗi.
+-- TODO: Theo hợp đồng pyodbc autocommit=True; không mở giao tác ngoài quanh các thủ tục này.
+-- Chỉ chạy trên CSDL demo sau khi đã viết và rà soát mã.

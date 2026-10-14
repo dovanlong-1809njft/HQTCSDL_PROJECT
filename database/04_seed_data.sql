@@ -1,0 +1,5 @@
+-- Dữ liệu demo
+-- SQL Server / T-SQL. TRẠNG THÁI: KHUNG, CHƯA TRIỂN KHAI.
+-- TODO: Ít nhất hai gia đình để kiểm tra cô lập dữ liệu; nhiều thế hệ; tài khoản/vai trò giả.
+-- TODO: Dữ liệu đủ cho nhánh, hôn nhân, bài, sự kiện, di sản và thống kê; không dùng dữ liệu thật.
+-- Chỉ chạy trên CSDL demo sau khi đã viết và rà soát mã.

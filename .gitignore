@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+# Bí mật/cấu hình máy cá nhân
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+# Dữ liệu runtime, CSDL, backup
+uploads/
+logs/
+*.mdf
+*.ndf
+*.ldf
+*.bak
+# File hệ điều hành/IDE tạo ra
+.vs/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# AI/runtime
+.cache/
+models/
+*.safetensors
+*.onnx
+coverage.xml
+htmlcov/

@@ -1,0 +1,5 @@
+-- Hàm nghiệp vụ
+-- SQL Server / T-SQL. TRẠNG THÁI: KHUNG, CHƯA TRIỂN KHAI.
+-- TODO: Hàm tính tuổi chính xác hoặc tiện ích tra cứu thế hệ theo tổ tiên mốc.
+-- TODO: Không tính tuổi chỉ bằng hiệu năm nếu yêu cầu đủ tuổi.
+-- Chỉ chạy trên CSDL demo sau khi đã viết và rà soát mã.

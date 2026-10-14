@@ -1,0 +1,14 @@
+FAMILYCONNECT V2 — KHÔNG ĐÁNH DẤU HOÀN THÀNH CHỈ VÌ ĐÃ CÓ FILE
+[ ] Chốt tiêu chí FR01–FR24, NF01–NF10 và số người thực tế
+[ ] ERD/từ điển 27 bảng, ràng buộc, hợp đồng API
+[ ] SQL 01–08 và dữ liệu demo hai gia đình
+[ ] Kết nối/auth/phiên/quyền; luồng lõi tuần đầu
+[ ] Gia phả/nhánh/hôn nhân/danh bạ
+[ ] Cộng đồng/sự kiện/upload/album
+[ ] Di sản/thông báo/nhắc lịch
+[ ] AI embedding + LLM thật và kiểm thử nguồn/quyền
+[ ] Dashboard/CSV/quản trị
+[ ] Giao tác/đồng thời/quyền SQL
+[ ] Backup + restore DB thử và volume tệp
+[ ] Docker + web/PWA trên thiết bị
+[ ] Tài liệu/bằng chứng/tổng duyệt

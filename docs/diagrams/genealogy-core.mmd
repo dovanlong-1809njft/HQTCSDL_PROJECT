@@ -1,0 +1,10 @@
+erDiagram
+  FAMILIES ||--o{ FAMILY_BRANCHES : contains
+  FAMILIES ||--o{ FAMILY_MEMBERS : contains
+  FAMILIES ||--o{ FAMILY_MEMBERSHIPS : grants
+  USERS ||--o{ FAMILY_MEMBERSHIPS : joins
+  FAMILY_BRANCHES o|--o{ FAMILY_MEMBERS : groups
+  FAMILY_MEMBERS ||--o{ PARENT_CHILD : parent
+  FAMILY_MEMBERS ||--o{ PARENT_CHILD : child
+  FAMILY_MEMBERS ||--o{ MARRIAGES : spouse_one
+  FAMILY_MEMBERS ||--o{ MARRIAGES : spouse_two

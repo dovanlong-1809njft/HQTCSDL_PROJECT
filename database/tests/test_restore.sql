@@ -1,0 +1,4 @@
+-- Kiểm thử phục hồi
+-- SQL Server / T-SQL. TRẠNG THÁI: KHUNG, CHƯA TRIỂN KHAI.
+-- TODO: Chỉ chạy trên FamilyConnectRestoreTest sau khi phục hồi; so bản ghi và nghiệp vụ mẫu.
+-- Chỉ chạy trên CSDL demo sau khi đã viết và rà soát mã.

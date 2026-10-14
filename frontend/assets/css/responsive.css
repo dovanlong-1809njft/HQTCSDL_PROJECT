@@ -1,0 +1,56 @@
+/* FamilyConnect — bố cục chung trên máy tính, tablet và điện thoại. */
+@media (max-width: 1200px) {
+  :root { --sidebar: 220px; }
+  .brand-name { font-size: 16px; }
+  .content { padding: 28px; }
+  .topbar { padding: 0 28px; }
+  .dashboard-grid { grid-template-columns: minmax(0,1.3fr) minmax(280px,1fr); gap: 16px; }
+  .stat { padding: 16px; }
+}
+@media (max-width: 1023px) {
+  .sidebar { width: 260px; transform: translateX(-100%); transition: transform .2s ease; visibility: hidden; }
+  body.drawer-open .sidebar { transform: translateX(0); visibility: visible; }
+  body.drawer-open { overflow: hidden; }
+  .app-shell { margin-left: 0; }
+  .menu-toggle, .drawer-close { display: grid; }
+  .sidebar .drawer-close { display: grid; position: absolute; top: 25px; right: 13px; width: 30px; height: 30px; background: transparent; border: 0; }
+  .sidebar .brand { padding-right: 20px; }
+  .drawer-overlay { display: block; position: fixed; inset: 0; background: #132b2580; border: 0; z-index: 35; }
+  .topbar-title { display: flex; align-items: center; gap: 12px; }
+}
+@media (max-width: 760px) {
+  .content { padding: 22px 18px; }
+  .topbar { padding: 0 18px; height: 68px; }
+  .topbar-right { gap: 8px; }
+  .topbar-right > .avatar { display: none; }
+  .topbar-title > span { display: none; }
+  .page-heading { align-items: flex-start; flex-direction: column; gap: 16px; }
+  .family-picker { width: 100%; }
+  .family-select { width: 100%; }
+  .hero { padding: 22px; gap: 10px; }
+  .hero h2 { font-size: 22px; }
+  .hero-symbol { width: 82px; height: 82px; }
+  .hero-symbol .icon { width: 55px; height: 55px; }
+  .hero-text { max-width: 80%; }
+  .stats-grid { grid-template-columns: repeat(2,1fr); gap: 12px; }
+  .dashboard-grid { grid-template-columns: minmax(0,1fr); }
+  .quick-grid { grid-template-columns: repeat(2,1fr); gap: 12px; }
+  .panel { padding: 20px; }
+  .page-footer { flex-direction: column; gap: 5px; }
+  .placeholder { margin: 1rem; padding: 1.25rem; }
+  .toast { right: 16px; bottom: 16px; }
+}
+@media (max-width: 430px) {
+  .hero { padding: 20px; }
+  .hero-text { max-width: 100%; }
+  .hero-symbol { display: none; }
+  .stat { padding: 14px; }
+  .stat-label { font-size: 11px; }
+  .stat-value { font-size: 27px; }
+  .stat-icon { width: 29px; height: 29px; }
+  .panel-heading { gap: 8px; }
+  .activity-tag { display: none; }
+  .quick-card { padding: 16px; }
+  .preview-badge { font-size: 10px; }
+  .section-heading > .small { display: none; }
+}
