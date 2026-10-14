@@ -1,0 +1,4 @@
+-- Khung nhìn báo cáo
+-- SQL Server / T-SQL. TRẠNG THÁI: KHUNG, CHƯA TRIỂN KHAI.
+-- TODO: Danh bạ và thống kê cơ bản; truy vấn gọi phải lọc FamilyID.
+-- Chỉ chạy trên CSDL demo sau khi đã viết và rà soát mã.

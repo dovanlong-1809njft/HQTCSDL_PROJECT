@@ -1,0 +1,3 @@
+# Cài khi triển khai embedding cục bộ. Cần tải model riêng và kiểm tra tài nguyên máy.
+sentence-transformers
+numpy

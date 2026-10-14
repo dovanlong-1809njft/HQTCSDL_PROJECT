@@ -1,0 +1,6 @@
+# TRẠNG THÁI: KHUNG; CHƯA CHẠY docker compose up ĐƯỢC.
+# Bắt buộc hoàn thiện ngày 15–18: backend + worker nhắc lịch (nếu dùng)
+# + reverse proxy HTTPS khi triển khai + volume uploads bền vững.
+# SQL Server: chọn instance sẵn có hoặc container phù hợp máy và giấy phép.
+# Cấu hình healthcheck/restart/volume là độ bền vận hành cơ bản, KHÔNG phải HA.
+# Không đưa mật khẩu/API key vào image hoặc commit.

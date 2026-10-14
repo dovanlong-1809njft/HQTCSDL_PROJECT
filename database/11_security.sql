@@ -1,0 +1,5 @@
+-- Quyền tài khoản CSDL
+-- SQL Server / T-SQL. TRẠNG THÁI: KHUNG, CHƯA TRIỂN KHAI.
+-- TODO: DBA riêng cho migration/backup; tài khoản ứng dụng chỉ được các quyền cần thiết.
+-- TODO: Không dùng sa cho API; RBAC theo gia đình vẫn phải kiểm tra ở backend.
+-- Chỉ chạy trên CSDL demo sau khi đã viết và rà soát mã.
