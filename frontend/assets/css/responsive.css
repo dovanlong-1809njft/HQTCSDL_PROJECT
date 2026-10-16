@@ -54,3 +54,10 @@
   .preview-badge { font-size: 10px; }
   .section-heading > .small { display: none; }
 }
+
+/* Giữ nút hồ sơ cạnh chuông kể cả trên điện thoại. */
+@media (max-width:760px) { .topbar-right > a.avatar { display: grid; width: 34px; height: 34px; } }
+@media (max-width:430px) { .topbar-right .preview-badge { display: none; } }
+
+/* Avatar mở menu hồ sơ phải luôn hiển thị kể cả trên màn hình điện thoại. */
+@media(max-width:760px){.topbar-right > button.avatar.account-menu-trigger{display:grid!important;}}

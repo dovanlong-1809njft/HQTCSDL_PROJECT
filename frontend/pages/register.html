@@ -1,19 +1,18 @@
-<!doctype html>
-<html lang="vi">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Đăng ký | FamilyConnect</title>
-  <link rel="stylesheet" href="../assets/css/main.css">
-  <link rel="stylesheet" href="../assets/css/responsive.css">
-</head>
-<body>
-  <main class="placeholder">
-    <h1>Đăng ký</h1>
-    <p>Tạo tài khoản</p>
-    <p><strong>Trạng thái:</strong> Giao diện khung; chưa kết nối API/SQL Server.</p>
-    <a href="dashboard.html">Về trang tổng quan</a>
-  </main>
-  <script src="../assets/js/main.js"></script>
-</body>
-</html>
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Đăng ký | FamilyConnect</title><meta name="description" content="Tạo tài khoản FamilyConnect — bản xem trước">
+<link rel="stylesheet" href="../assets/css/main.css"><link rel="stylesheet" href="../assets/css/auth-page.css"><link rel="stylesheet" href="../assets/css/theme.css">
+<script src="../assets/js/core/auth.js"></script><script src="../assets/js/modules/auth-page.js" defer></script>
+</head><body class="auth-body" data-auth-view="register"><main class="auth-wrap" id="main-content">
+<section class="auth-intro"><a class="auth-logo" href="../index.html"><span class="auth-logo-mark" aria-hidden="true">♧</span><span>FamilyConnect</span></a><span class="auth-tagline">GẮN KẾT CÁC THẾ HỆ</span><h1>Giữ gần nhau<br>qua nhiều thế hệ.</h1><p>Tạo tài khoản mẫu để khám phá các tính năng và lưu những kỷ niệm trong phiên bản Frontend.</p><div class="auth-scene" aria-hidden="true"><span>♧</span><span>♡</span><span>✧</span></div></section>
+<section class="auth-card" aria-labelledby="auth-title"><header class="auth-card-head"><h2 id="auth-title">Tạo tài khoản</h2><p>Đăng ký tài khoản dùng thử FamilyConnect trên trình duyệt của bạn.</p></header>
+<p class="auth-feedback" id="auth-feedback" role="status" aria-live="polite" hidden></p>
+<form id="register-form" novalidate><div class="auth-fields">
+<div class="auth-field"><label for="register-name">Họ và tên</label><input id="register-name" autocomplete="name" maxlength="80" placeholder="Ví dụ: Nguyễn Văn A" required></div>
+<div class="auth-field"><label for="register-username">Tên tài khoản</label><input id="register-username" autocomplete="username" maxlength="32" placeholder="Chữ thường, số, dấu gạch dưới" required></div>
+<div class="auth-field"><label for="register-email">Email</label><input id="register-email" type="email" autocomplete="email" maxlength="120" placeholder="tenban@example.com" required></div>
+<div class="auth-field"><label for="register-password">Mật khẩu</label><div class="auth-password"><input id="register-password" type="password" autocomplete="new-password" minlength="8" maxlength="128" placeholder="Tối thiểu 8 ký tự" required><button class="auth-reveal" type="button" data-reveal="register-password" aria-label="Hiện mật khẩu">Hiện</button></div></div>
+<div class="auth-field"><label for="register-repeat">Nhập lại mật khẩu</label><div class="auth-password"><input id="register-repeat" type="password" autocomplete="new-password" required><button class="auth-reveal" type="button" data-reveal="register-repeat" aria-label="Hiện mật khẩu">Hiện</button></div></div>
+<button class="auth-primary" type="submit" id="register-submit">Đăng ký</button></div></form>
+<p class="auth-switch">Đã có tài khoản? <a href="login.html">Đăng nhập</a></p>
+<p class="auth-privacy">Tài khoản đăng ký tại đây chỉ là dữ liệu dùng thử lưu trong trình duyệt; chưa đồng bộ SQL Server và chưa hỗ trợ đặt lại mật khẩu.</p>
+</section></main><footer class="auth-bottom-brand">FamilyConnect · Gắn kết các thế hệ</footer></body></html>

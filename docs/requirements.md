@@ -1,6 +1,6 @@
-# Yêu cầu hệ thống v2
+# Yêu cầu hệ thống 
 
-Ràng buộc người dùng đã chốt: 3 tuần; Python cho backend; SQL Server/T-SQL, SSMS 22; giao diện web dùng trên Android/iOS/Windows. PostgreSQL trong đề xuất gốc được thay bằng SQL Server theo yêu cầu hiện tại.
+Ràng buộc người dùng đã chốt: Python cho backend; SQL Server/T-SQL, SSMS 22; giao diện web dùng trên Android/iOS/Windows. PostgreSQL trong đề xuất gốc được thay bằng SQL Server theo yêu cầu hiện tại.
 
 Không coi thu hẹp chức năng trong tài liệu v1 là đã được chấp thuận. Ma trận yêu cầu dưới đây giữ mọi nhóm chức năng đã nêu, chọn cách thực hiện đơn giản và kiểm chứng được.
 Dòng "Quản lý" bị thiếu đối tượng trong đề bài tạm hiểu là quản lý người trong gia phả; ghi rõ đây là giả định.
@@ -48,4 +48,4 @@ Dòng "Quản lý" bị thiếu đối tượng trong đề bài tạm hiểu l�
 
 Thông báo/nhắc lịch bản cơ bản nằm trong ứng dụng. Email/SMS/push ngoài ứng dụng không tự coi là bắt buộc khi đề chưa nói rõ. Học vấn/nghề nghiệp dùng hồ sơ văn bản hiện tại; chưa làm lịch sử nhiều công việc/trường học.
 
-Mục tiêu 21 ngày là bản trình diễn tích hợp, không cam kết chất lượng sản phẩm vận hành quy mô lớn. Mọi hàng chỉ đánh dấu hoàn thành sau khi demo/test thật; không dùng số lượng file làm tỷ lệ hoàn thành.
+Mục tiêu là bản trình diễn tích hợp, không cam kết chất lượng sản phẩm vận hành quy mô lớn. Mọi hàng chỉ đánh dấu hoàn thành sau khi demo/test thật; không dùng số lượng file làm tỷ lệ hoàn thành.

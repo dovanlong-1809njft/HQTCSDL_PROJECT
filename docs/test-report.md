@@ -19,3 +19,7 @@ Bộ khung v2 CHƯA chạy kiểm thử chức năng/SQL/thiết bị/Docker/AI.
 | Thiết bị | Android/iOS/Windows; web/PWA | Thiết bị/trình duyệt/ảnh thực tế |
 
 Mỗi kết quả cần: mã FR/NF, commit, ngày, người chạy, môi trường, đầu vào, mong đợi, thực tế, Pass/Fail/Blocked, bằng chứng. tests/*.py và database/tests/*.sql hiện chỉ là khung.
+
+## Tình trạng kiểm thử tính đến đợt đồng bộ tài liệu 16/10/2026
+
+Các bảng kiểm thử ở đây là **kế hoạch / khung**. Mã nguồn Frontend có thao tác mô phỏng và từng bước có ghi nhận kiểm tra cú pháp, nhưng **chưa có kết quả test E2E với FastAPI–SQL Server và không có biên bản PASS từ bản ZIP này**. Khi chạy thực tế, bổ sung ngày, hệ điều hành/trình duyệt, commit SHA, đầu vào, kỳ vọng, kết quả và ảnh/log để tránh báo cáo quá mức. Xem `VALIDATION.md` (lịch sử) và `PROJECT_STATUS.md` (trạng thái).
