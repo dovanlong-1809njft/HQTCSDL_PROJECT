@@ -1,9 +1,26 @@
-# Trạng thái hiện tại — cấu trúc v2, frontend bước 1
+# SCAFFOLD_STATUS — lịch sử phát triển khung → bản mẫu Frontend
 
-ĐÃ TRIỂN KHAI FRONTEND: CSS chung, responsive, menu, dashboard dùng dữ liệu mẫu, chọn hai gia đình, lọc hoạt động, chi tiết sự kiện và RSVP thử. index.html mở dashboard. Chi tiết chạy/kiểm tra tại FRONTEND_STEP1.md.
+> **Để biết trạng thái mới nhất hãy đọc `PROJECT_STATUS.md`.** Tài liệu này giữ lại ý nghĩa của giai đoạn xây dựng bộ khung, không xóa các mốc cũ.
 
-ĐÃ CÓ MÃ NỀN BACKEND/SQL: GET /health (không kiểm DB), config.py đọc 3 biến môi trường, SQL 01 tạo FamilyConnectDB.
+## Bộ khung ban đầu
 
-CHƯA TRIỂN KHAI: bảng/ràng buộc/dữ liệu SQL, auth/JWT/RBAC, CRUD nghiệp vụ/API, cây thật, upload, AI, báo cáo, nhắc lịch, Docker/PWA và backup/restore. Các trang khác và tests còn là khung. Dashboard không gọi API hay giả xác thực.
+- Thư mục `backend/` có FastAPI `/health`, các gói routers/services/repositories và TODO.
+- `database/` có script tạo cơ sở dữ liệu cùng phần lớn script chưa triển khai.
+- `frontend/` bắt đầu từ Dashboard và mở rộng từng trang, sử dụng dữ liệu trình duyệt.
+- `tests/` và `docs/` được tạo để có khung kiểm thử và hướng dẫn.
 
-27 bảng là thiết kế, API là hợp đồng mục tiêu. Các kiểm thử giao tác/DB/nghiệp vụ vẫn chưa chạy. Kết quả kiểm tra UI bước 1 không chứng minh backend/SQL hoạt động.
+## Các bước Frontend đã có mã ở ZIP hiện tại
+
+Tổng quan → Gia đình → Gia phả → Danh bạ → Cộng đồng → Sự kiện → Di sản → AI mô phỏng → Báo cáo → Thông báo → Hồ sơ → Quản trị. Chi tiết `FRONTEND_FEATURE_MATRIX.md`; đây là **thứ tự phát triển được tài liệu ghi nhận**, không chứng minh ngày hoàn thành từng trang.
+
+Các đợt nâng cấp giao diện tiếp theo gồm: Sidebar dạng icon rail; V3 cải thiện bố cục/Thông báo/Avatar; V4 Đăng nhập/Đăng ký/Menu/Sáng-Tối; V5 sửa tương phản Dark Mode.
+
+## Trạng thái thực sự cần ghi nhớ
+
+- Chưa kết nối nghiệp vụ API/SQL Server; các thao tác hiện chạy với dữ liệu demo trình duyệt.
+- Google/Facebook, quên mật khẩu qua email và AI mô hình thực chưa hoạt động.
+- Docker/PWA còn khung.
+- **Cập nhật V7 (16/10/2026):** `frontend/index.html` đã được sửa để chuyển đến Đăng nhập khi chưa có phiên mẫu, hoặc Tổng quan khi đã có phiên. Nội dung bộ khung cũ được giữ lại để tham khảo lịch sử.
+- Kết quả kiểm thử cũ thuộc từng bước lịch sử, không đồng nghĩa tất cả tương tác mới nhất đã PASS.
+
+**Đọc tiếp:** `PROJECT_STATUS.md`, `DEVELOPMENT_HISTORY.md`, `FRONTEND_FEATURE_MATRIX.md`, `DOCUMENT_AUDIT.md`.

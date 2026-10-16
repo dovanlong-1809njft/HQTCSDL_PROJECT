@@ -1,9 +1,10 @@
-# Đầu mối từng tệp — v2
+# File Ownership — đầu mối đề xuất theo file (đồng bộ 16/10/2026)
 
-A=CSDL; B=nền tảng/tài khoản/gia đình/quản trị; C=gia phả/danh bạ; D=UI chung/cộng đồng/sự kiện/media/PWA; E=di sản/AI/thống kê/thông báo/tích hợp/tài liệu.
-A–E là nhóm trách nhiệm có thể gộp/tách, chưa phải danh sách người. E quản lý tài liệu chung; tác giả module cập nhật nội dung của mình. Danh mục khớp ZIP v2, mỗi file có một đầu mối.
+> **Đầu mối = khu vực trách nhiệm, không phải người đã nhận task.** A=CSDL; B=Backend/tài khoản/quản trị; C=Gia phả/Danh bạ; D=Frontend chung/Cộng đồng/Sự kiện; E=AI/Di sản/Thống kê/Thông báo/Tài liệu/QA.
 
-| Đường dẫn | Đầu mối |
+Bảng này được đồng bộ với `structure-inventory.md`; mỗi đường dẫn hiện có một đầu mối. Có thể điều chỉnh khi nhóm thực sự chia việc. **Không đổi hoặc xóa file tự động**.
+
+| File | Nhóm đề xuất |
 |---|---|
 | `.env.example` | B |
 | `.github/ISSUE_TEMPLATE/bug_report.md` | E |
@@ -111,7 +112,27 @@ A–E là nhóm trách nhiệm có thể gộp/tách, chưa phải danh sách ng
 | `database/tests/test_transactions.sql` | A |
 | `docker-compose.yml` | E |
 | `docs/CHANGELOG_STRUCTURE.md` | E |
+| `docs/DEVELOPMENT_HISTORY.md` | E |
+| `docs/DOCUMENT_AUDIT.md` | E |
+| `docs/DOCUMENT_REVIEW_CANDIDATES.md` | E |
+| `docs/FRONTEND_BAOCAO.md` | E |
+| `docs/FRONTEND_CAYGIAPHA.md` | E |
+| `docs/FRONTEND_CONGDONG.md` | E |
+| `docs/FRONTEND_DANGNHAP_TAIKHOAN.md` | E |
+| `docs/FRONTEND_DANHBA.md` | E |
+| `docs/FRONTEND_DARK_MODE_V5.md` | E |
+| `docs/FRONTEND_DISAN.md` | E |
+| `docs/FRONTEND_FEATURE_MATRIX.md` | E |
+| `docs/FRONTEND_GIADINH.md` | D |
+| `docs/FRONTEND_HOSO.md` | E |
+| `docs/FRONTEND_QUANTRI.md` | E |
+| `docs/FRONTEND_SIDEBAR.md` | E |
 | `docs/FRONTEND_STEP1.md` | D |
+| `docs/FRONTEND_SUKIEN.md` | E |
+| `docs/FRONTEND_THONGBAO.md` | E |
+| `docs/FRONTEND_TROLYAI.md` | E |
+| `docs/FRONTEND_UI_FIXES_V3.md` | E |
+| `docs/PROJECT_STATUS.md` | E |
 | `docs/README.md` | E |
 | `docs/SCAFFOLD_STATUS.md` | E |
 | `docs/VALIDATION.md` | E |
@@ -132,6 +153,7 @@ A–E là nhóm trách nhiệm có thể gộp/tách, chưa phải danh sách ng
 | `docs/implementation-order.md` | E |
 | `docs/requirements.md` | E |
 | `docs/structure-inventory.md` | E |
+| `docs/sw.js` | E |
 | `docs/task-checklist.txt` | E |
 | `docs/team-guide.md` | E |
 | `docs/terms-quick-reference.txt` | E |
@@ -139,26 +161,54 @@ A–E là nhóm trách nhiệm có thể gộp/tách, chưa phải danh sách ng
 | `docs/use-cases.md` | E |
 | `docs/user-guide.md` | E |
 | `frontend/README.md` | D |
+| `frontend/assets/css/account-menu.css` | D |
+| `frontend/assets/css/admin.css` | B |
+| `frontend/assets/css/ai.css` | E |
+| `frontend/assets/css/auth-page.css` | D |
+| `frontend/assets/css/community.css` | D |
+| `frontend/assets/css/directory.css` | C |
+| `frontend/assets/css/events.css` | D |
+| `frontend/assets/css/family.css` | D |
 | `frontend/assets/css/genealogy.css` | C |
+| `frontend/assets/css/heritage.css` | E |
 | `frontend/assets/css/main.css` | D |
+| `frontend/assets/css/notification-popover.css` | E |
+| `frontend/assets/css/notifications.css` | E |
+| `frontend/assets/css/profile.css` | D |
+| `frontend/assets/css/reports.css` | E |
 | `frontend/assets/css/responsive.css` | D |
+| `frontend/assets/css/sidebar.css` | D |
+| `frontend/assets/css/theme.css` | D |
 | `frontend/assets/icons/.gitkeep` | D |
 | `frontend/assets/icons/README.md` | D |
 | `frontend/assets/images/.gitkeep` | D |
+| `frontend/assets/images/community-gathering.svg` | D |
+| `frontend/assets/images/community-memory.svg` | D |
+| `frontend/assets/images/community-travel.svg` | D |
+| `frontend/assets/images/heritage-archive.svg` | E |
+| `frontend/assets/js/core/account-menu.js` | D |
 | `frontend/assets/js/core/api.js` | D |
 | `frontend/assets/js/core/auth.js` | D |
+| `frontend/assets/js/core/event-store.js` | D |
+| `frontend/assets/js/core/family-store.js` | D |
 | `frontend/assets/js/core/media.js` | D |
+| `frontend/assets/js/core/notification-popover.js` | E |
+| `frontend/assets/js/core/notification-store.js` | E |
+| `frontend/assets/js/core/profile-badge.js` | D |
 | `frontend/assets/js/core/pwa.js` | D |
+| `frontend/assets/js/core/report-math.js` | E |
+| `frontend/assets/js/core/sidebar.js` | D |
 | `frontend/assets/js/core/ui.js` | D |
 | `frontend/assets/js/main.js` | D |
 | `frontend/assets/js/modules/account.js` | D |
 | `frontend/assets/js/modules/admin.js` | B |
 | `frontend/assets/js/modules/ai.js` | E |
+| `frontend/assets/js/modules/auth-page.js` | D |
 | `frontend/assets/js/modules/community.js` | D |
 | `frontend/assets/js/modules/dashboard.js` | E |
 | `frontend/assets/js/modules/directory.js` | C |
 | `frontend/assets/js/modules/events.js` | D |
-| `frontend/assets/js/modules/family.js` | B |
+| `frontend/assets/js/modules/family.js` | D |
 | `frontend/assets/js/modules/genealogy.js` | C |
 | `frontend/assets/js/modules/heritage.js` | E |
 | `frontend/assets/js/modules/notifications.js` | E |
@@ -171,7 +221,7 @@ A–E là nhóm trách nhiệm có thể gộp/tách, chưa phải danh sách ng
 | `frontend/pages/dashboard.html` | E |
 | `frontend/pages/directory.html` | C |
 | `frontend/pages/events.html` | D |
-| `frontend/pages/family.html` | B |
+| `frontend/pages/family.html` | D |
 | `frontend/pages/genealogy.html` | C |
 | `frontend/pages/heritage.html` | E |
 | `frontend/pages/login.html` | D |
@@ -198,3 +248,10 @@ A–E là nhóm trách nhiệm có thể gộp/tách, chưa phải danh sách ng
 | `tests/test_notifications.py` | E |
 | `tests/test_permissions.py` | B |
 | `tests/test_reports.py` | E |
+
+## Cách sử dụng
+
+- Thành viên nhận việc tại GitHub Issue/Project, không coi tên nhóm A–E là người đã cam kết.
+- File dùng chung như `main.css`, `theme.css`, `sidebar.css`, `auth.js` yêu cầu review của nhóm bị ảnh hưởng khi đổi.
+- Khi thêm file, thêm đường dẫn vào kiểm kê và phân công; khi sửa nội dung, tác giả cập nhật file `FRONTEND_*.md` hoặc tài liệu tương ứng.
+- Những file nằm trong `DOCUMENT_REVIEW_CANDIDATES.md` chỉ được xem xét, **không xóa khi chưa được duyệt**.

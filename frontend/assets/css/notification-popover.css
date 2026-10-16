@@ -1,0 +1,42 @@
+/* FamilyConnect: bảng thông báo nhanh (giữ nguyên trang notifications.html). */
+.fc-notification-popover[hidden] { display: none !important; }
+.fc-notification-popover {
+  position: fixed; z-index: 100; width: min(405px, calc(100vw - 24px));
+  display: flex; flex-direction: column; overflow: hidden;
+  background: #fff; color: var(--ink); border: 1px solid var(--line);
+  border-radius: 17px; box-shadow: 0 18px 48px rgba(23, 56, 43, .22);
+  font-size: 12px;
+}
+.fc-notice-header { padding: 17px 18px 11px; display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+.fc-notice-header h2 { font-size:21px; letter-spacing: -.4px; margin-bottom:3px; }
+.fc-notice-header p { margin:0; color:var(--muted); font-size:11px; }
+.fc-notice-close { width:30px; height:30px; border:0; border-radius:9px; color:var(--muted); background:#f5f7f3; font-size:22px; cursor:pointer; }
+.fc-notice-toolbar { display:flex; justify-content:space-between; align-items:center; gap:9px; padding:0 14px 10px; }
+.fc-notice-action { border:1px solid var(--line); background:#fff; border-radius:20px; color:var(--green); font-weight:600; padding:7px 12px; font-size:11px; cursor:pointer; }
+.fc-notice-action.is-active { background:var(--green); color:#fff; border-color:var(--green); }
+.fc-notice-action:hover,.fc-notice-close:hover { background:var(--green-soft); color:var(--green); }
+.fc-notice-tabs { display:flex; gap:5px; padding:1px 14px 11px; flex:0 0 auto; overflow-x:auto; scrollbar-width:thin; }
+.fc-notice-tab { font:inherit; font-size:11px; white-space:nowrap; padding:7px 12px; border:1px solid #e9ece6; border-radius:20px; color:#647469; background:#fff; cursor:pointer; }
+.fc-notice-tab.is-active { background:var(--green); border-color:var(--green); color:#fff; }
+.fc-notice-tab:hover:not(.is-active) { background:#eff5ee; }
+.fc-notice-list { overflow-y:auto; min-height:70px; max-height:540px; flex:1 1 auto; overscroll-behavior:contain; }
+.fc-notice-group { position:sticky; top:0; z-index:1; padding:10px 17px 7px; background:#fff; border-bottom:1px solid #f2f3f0; font-size:12px; }
+.fc-notice-row { display:flex; align-items:center; gap:11px; padding:11px 16px; color:var(--ink); text-decoration:none; border-bottom:1px solid #f2f4f0; }
+.fc-notice-row:hover { background:#f5f8f4; text-decoration:none; }
+.fc-notice-row.is-unread { background:#f0f7f0; }
+.fc-notice-row.is-unread:hover { background:#e8f3e9; }
+.fc-notice-avatar { display:grid; place-items:center; flex:0 0 38px; width:38px; height:38px; border-radius:50%; background:#e3eee2; color:#275f47; font-size:11px; font-weight:700; }
+.fc-notice-copy { min-width:0; display:flex; flex-direction:column; gap:3px; flex:1; }
+.fc-notice-copy strong { font-size:12px; font-weight:650; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.fc-notice-excerpt { color:#66756d; font-size:11px; line-height:1.45; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.fc-notice-meta { font-size:10px; color:#358060; }
+.fc-notice-unread { width:9px; height:9px; border-radius:50%; background:#387fc9; flex:0 0 9px; }
+.fc-notice-empty,.fc-notice-more { padding:22px; color:var(--muted); text-align:center; font-size:12px; margin:0; }
+.fc-notice-footer { padding:11px 14px; border-top:1px solid var(--line); background:#fff; text-align:center; }
+.fc-notice-full { display:block; color:#fff; background:var(--green); font-size:12px; font-weight:650; border-radius:10px; padding:10px; }
+.fc-notice-full:hover { background:var(--green-dark); text-decoration:none; }
+@media(max-width:450px) {
+  .fc-notification-popover { width:calc(100vw - 20px); right:10px !important; }
+  .fc-notice-header { padding:14px 14px 10px; }
+}
+.topbar .notification-trigger .notice-count[hidden] { display: none; }

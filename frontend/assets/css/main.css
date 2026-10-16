@@ -128,3 +128,13 @@ p { margin: 0 0 10px; }
 .placeholder h1 { font-size: 26px; }
 .placeholder p { color: var(--muted); }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; } }
+
+/* Huy hiệu thông báo dùng chung trên các trang đã triển khai. */
+.notice-count{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 4px;border-radius:12px;background:#ef5a7e;color:#fff;font-size:9px;font-weight:700;line-height:1;flex-shrink:0}
+.nav-item .notice-count{margin-left:auto}.topbar a.icon-button[href="notifications.html"]{position:relative}.topbar .notice-count{position:absolute;right:-4px;top:-4px;border:2px solid #fff;min-width:19px;height:19px}
+
+/* Ảnh đại diện Topbar đồng bộ từ trang Hồ sơ cá nhân. */
+.topbar-right > a.avatar { overflow: hidden; text-decoration: none; }
+.topbar-right > a.avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block; }
+.topbar .notification-trigger { position: relative; flex-shrink: 0; }
+.topbar .notification-trigger .notice-count { position: absolute; right: -5px; top: -5px; border: 2px solid #fff; min-width: 19px; height: 19px; }

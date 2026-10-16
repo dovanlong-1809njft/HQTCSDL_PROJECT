@@ -1,4 +1,4 @@
-# Kế hoạch triển khai 21 ngày — bản thống nhất
+# Kế hoạch triển khai — bản thống nhất
 
 Ngày là số thứ tự từ lúc nhóm bắt đầu. A–E là nhóm trách nhiệm, chưa phải năm người đã xác nhận. Có thể gộp/tách theo nhân lực thực tế. docs/file-ownership.md là nguồn phân công theo file.
 
@@ -11,7 +11,13 @@ Ngày là số thứ tự từ lúc nhóm bắt đầu. A–E là nhóm trách n
 | 15–18 | D PWA/thiết bị; E Docker và tích hợp; A backup/restore/giao tác/đồng thời; mọi nhóm test quyền/lỗi | Build/run trên máy thứ hai; minh chứng rollback, tranh chấp, khôi phục, AI và đa nền tảng |
 | 19–21 | Sửa lỗi, hoàn thiện tài liệu, ảnh/video minh chứng, diễn tập | Source + hướng dẫn + dữ liệu demo + báo cáo; công khai khoảng thiếu |
 
-Không chờ tới tuần 3 mới nối frontend/backend. Thủ tục và giao tác làm cùng nghiệp vụ ngay tuần 1–2; tuần 3 kiểm chứng, không viết toàn bộ từ đầu.
+Không chờ đến deadline mới nối frontend/backend. Thủ tục và giao tác làm cùng nghiệp vụ ngay tuần 1–2; tuần 3 kiểm chứng, không viết toàn bộ từ đầu.
 Docker và PWA có thời gian riêng, không còn là mục "nếu kịp". HA thực tế/app native nếu bị bắt buộc là phạm vi bổ sung có tác động tiến độ, không được dùng restart/PWA để tự nhận đáp ứng.
 
 Định nghĩa hoàn thành: code có thật, dữ liệu SQL thật, đúng quyền, chạy trên máy thứ hai, test liên quan có kết quả, tài liệu cập nhật, người khác review. Khung TODO chưa hoàn thành.
+
+## Ghi chú cập nhật ngày 16/10/2026 — kế hoạch vs tiến độ thực
+
+Bảng 21 ngày trên được lập khi nhóm mới thống nhất kiến trúc. **Đừng coi các hạng mục Frontend là chưa có gì:** theo ZIP hiện tại đã có 12 trang ứng dụng, login/register mô phỏng, Sidebar, thông báo nổi và Sáng/Tối. Cần rà soát/tích hợp, không phải dựng lại từ đầu.
+
+**Mốc thực tế nên tiếp nối:** (1) kiểm thử UI; (2) chốt ERD/API; (3) SQL Server; (4) Backend FastAPI; (5) tích hợp thực & giao tác/đồng thời; (6) nghiệm thu. Người điều phối cập nhật lại số ngày dựa trên deadline thật, không tự dời lịch nếu chưa thống nhất với nhóm. Trạng thái chi tiết: `PROJECT_STATUS.md`.

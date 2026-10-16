@@ -1,11 +1,25 @@
-# Hướng dẫn người dùng — phiên bản mục tiêu
+# Hướng dẫn người dùng — bản mẫu Frontend và mục tiêu ứng dụng
 
-Các trang hiện là giữ chỗ. Khi hoàn thành, người dùng đăng ký/đăng nhập, tạo gia đình hoặc xin tham gia và chờ duyệt. Người quản trị gia đình quản lý nhánh, thêm người, cha mẹ-con và hôn nhân; người được phép xem cây và tra cứu quan hệ.
+## A. Những gì có thể thử trên Frontend hiện tại
 
-Cộng đồng cho phép đăng bài, ảnh, bình luận và phản ứng. Sự kiện có RSVP, người tham gia và album. Thông báo hiển thị thông báo gia đình và nhắc lịch. Danh bạ có bộ lọc nghề nghiệp, địa điểm và thế hệ theo mốc.
+1. Trong thư mục `frontend/`, chạy `py -m http.server 5500`.
+2. Mở `http://localhost:5500/pages/login.html`, dùng tài khoản mẫu được ghi ở README gốc. **Không dùng mật khẩu thật**.
+3. Chọn gia đình mẫu rồi xem lần lượt: Tổng quan, Gia đình, Cây gia phả, Danh bạ, Cộng đồng, Sự kiện, Di sản, Trợ lý AI, Báo cáo, Hồ sơ, Quản trị.
+4. Rê chuột vào Sidebar để mở, thử ghim; bấm chuông ở Topbar để mở Thông báo nhỏ và chọn **Mở rộng** để xem trang lớn.
+5. Bấm avatar góc phải → Xem trang cá nhân, đổi Sáng/Tối hoặc Đăng xuất. Mọi thay đổi liên quan hồ sơ/bài viết chỉ là dữ liệu mẫu trong trình duyệt.
 
-Di sản chứa tư liệu, câu chuyện, người tiêu biểu và thư viện ảnh. Trợ lý AI tìm kiếm ngữ nghĩa/hỏi đáp/tóm tắt trên dữ liệu được phép; khi thiếu dữ liệu phải báo rõ. Báo cáo cung cấp thống kê và CSV cho quản trị gia đình.
+**Lưu ý:** Trang gốc `/` trong ZIP hiện chuyển thẳng tới Dashboard, khác với quy trình muốn đăng nhập đầu tiên. Đây là việc cần sửa trong mã nguồn, không phải một tính năng đã hoàn thiện.
 
-Quản trị hệ thống quản lý tài khoản/kiểm duyệt/cấu hình. Sao lưu/khôi phục do DBA thực hiện theo hướng dẫn riêng, không có nút web chạy SQL tùy ý.
+## B. Giới hạn của bản mẫu
 
-PWA dùng trên trình duyệt Android/iOS/Windows khi triển khai xong; bộ khung chưa cài được như ứng dụng. Dữ liệu demo dùng người giả lập.
+- Không có xác thực/ủy quyền trên máy chủ và không có dữ liệu SQL Server thật.
+- Google/Facebook là nút giao diện chờ tích hợp; Quên mật khẩu chưa gửi email.
+- AI chỉ mô phỏng với dữ liệu JS; không phải phản hồi từ mô hình LLM thật.
+- Các thao tác lưu dữ liệu localStorage, không chia sẻ giữa thiết bị hoặc trình duyệt.
+- Chưa chứng minh PWA và Docker hoạt động đầy đủ.
+
+## C. Mục tiêu sau khi kết nối Backend/Database
+
+Người dùng đăng nhập an toàn, tạo hoặc xin vào gia đình, quản lý thành viên/quan hệ, chia sẻ bài viết, tham gia sự kiện, lưu trữ tư liệu và dùng trợ lý AI trong phạm vi được phân quyền. Người quản trị có API riêng bảo vệ dữ liệu; CSDL có giao tác và kiểm thử đồng thời.
+
+Đọc `requirements.md` và `api-documentation.md` để xem các yêu cầu **dự kiến**, không tự suy ra ứng dụng hiện đã đáp ứng.

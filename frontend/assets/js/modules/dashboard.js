@@ -32,6 +32,10 @@
   let selectedEvent = null;
   const picker = document.getElementById('family-picker');
   if (!picker) return;
+  if (window.FamilyStore) {
+    picker.value=window.FamilyStore.getActive();
+    [...picker.options].forEach(o=>o.textContent=window.FamilyStore.get(o.value).name+' · mẫu');
+  }
   const filter = document.getElementById('activity-filter');
   const list = document.getElementById('activity-list');
   const dialog = document.getElementById('event-dialog');
@@ -78,6 +82,13 @@
   function renderEvents() {
     const target = document.getElementById('events-list');
     target.replaceChildren();
+    if(window.EventDemo&&window.FamilyStore){
+      const E=window.EventDemo,f=E.ensure(window.FamilyStore.get(picker.value));
+      const events=f.eventData.items.filter(e=>!e.cancelled&&E.instant(e.end)>Date.now()).sort((a,b)=>E.instant(a.start)-E.instant(b.start)).slice(0,3);
+      events.forEach(e=>{const row=element('article','event-row'),date=element('div','date-box'),copy=element('div','event-info'),link=element('a','btn-link','Xem chi tiết →');date.append(element('span','','THÁNG '+Number(e.start.slice(5,7))),element('strong','',e.start.slice(8,10)));link.href='events.html?family='+encodeURIComponent(f.id)+'&event='+encodeURIComponent(e.id);copy.append(element('h3','',e.title),element('p','',e.start.slice(11)+' · '+e.start.slice(0,10).split('-').reverse().join('/')+' · giờ Việt Nam'),link);row.append(date,copy);target.append(row);});
+      if(!events.length)target.append(element('p','small','Chưa có sự kiện sắp tới.'));
+      return;
+    }
     families[picker.value].events.forEach(event => {
       const row = element('article', 'event-row');
       const date = element('div', 'date-box');
@@ -94,14 +105,21 @@
     });
   }
   function render() {
-    const data = families[picker.value];
+    const data = {...families[picker.value]};
+    if (window.FamilyStore) {
+      const family=window.FamilyStore.get(picker.value);
+      data.members=family.members.length;
+      data.posts=family.posts;
+      data.heritage=family.heritage;
+      data.generations=new Set(family.members.map(m=>m.generation)).size;
+    }
     ['members', 'generations', 'posts', 'heritage'].forEach(key => {
       document.getElementById('stat-' + key).textContent = String(data[key]);
     });
     renderActivities();
     renderEvents();
   }
-  picker.addEventListener('change', () => { render(); window.FamilyUI?.toast('Đã chuyển sang ' + picker.selectedOptions[0].textContent); });
+  picker.addEventListener('change', () => { window.FamilyStore?.setActive(picker.value); render(); window.FamilyUI?.toast('Đã chuyển sang ' + picker.selectedOptions[0].textContent); });
   filter.addEventListener('change', renderActivities);
   document.getElementById('event-close').addEventListener('click', () => dialog.close());
   document.getElementById('event-cancel').addEventListener('click', () => dialog.close());
