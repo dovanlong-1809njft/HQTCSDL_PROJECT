@@ -40,7 +40,7 @@
         try {
           await A.login($('login-identity').value, $('login-password').value);
           const next = new URLSearchParams(location.search).get('next');
-          location.replace(A.targetPage(next));
+          location.replace(next?A.targetPage(next):A.landingPage());
         } catch (error) { show(error.message || 'Không thể đăng nhập.', true); busy(button, false, 'Đăng nhập'); }
       });
     } else {

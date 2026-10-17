@@ -14,7 +14,7 @@
     menu.innerHTML = `
       <div class="fc-account-header"><span class="fc-account-header-icon" id="fc-menu-photo" aria-hidden="true">VA</span><div><div class="fc-account-name" id="fc-menu-name">Tài khoản</div><div class="fc-account-status">FamilyConnect · Bản dùng thử</div></div></div>
       <a class="fc-account-link" href="profile.html"><span class="fc-account-icon" aria-hidden="true">♙</span> Xem trang cá nhân <span style="margin-left:auto">›</span></a>
-      <div class="fc-account-theme"><span class="fc-account-icon" aria-hidden="true">◐</span><span class="fc-theme-label" id="fc-theme-label">Giao diện sáng</span><button type="button" role="switch" class="fc-account-switch" id="fc-theme-toggle" aria-label="Chuyển chế độ sáng tối" aria-checked="false"></button></div>
+      <a class="fc-account-link" href="profile.html?tab=settings"><span class="fc-account-icon" aria-hidden="true">⚙</span> Cài đặt hồ sơ</a><div class="fc-account-theme"><span class="fc-account-icon" aria-hidden="true">◐</span><span class="fc-theme-label" id="fc-theme-label">Giao diện sáng</span><button type="button" role="switch" class="fc-account-switch" id="fc-theme-toggle" aria-label="Chuyển chế độ sáng tối" aria-checked="false"></button></div>
       <div class="fc-account-hint">Gạt trái: Sáng · Gạt phải: Tối</div>
       <button type="button" class="fc-account-logout" id="fc-logout"><span class="fc-account-icon" aria-hidden="true">↪</span> Đăng xuất</button>`;
     document.body.append(menu);
@@ -55,7 +55,7 @@
     document.addEventListener('keydown', event => { if (event.key === 'Escape' && !menu.hidden) { event.preventDefault(); close(true); } });
     window.addEventListener('resize', position);
     window.addEventListener('scroll', position, true);
-    menu.querySelector('#fc-logout').addEventListener('click', () => AUTH.signOut());
+    menu.querySelector('#fc-logout').addEventListener('click', () => {if(!window.FamilyUnsaved||window.FamilyUnsaved.allowPage())AUTH.signOut();});
     toggle.addEventListener('click', () => { AUTH.setTheme(AUTH.getTheme() === 'dark' ? 'light' : 'dark'); syncTheme(); });
     window.addEventListener('familyconnect:profile-updated', syncProfile);
   }

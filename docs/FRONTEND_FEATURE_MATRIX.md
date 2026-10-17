@@ -1,3 +1,29 @@
+# Cập nhật V10
+
+Biểu mẫu sửa hồ sơ người thân dùng chung ở Gia đình/Danh bạ/Cây. Cây có truy vấn hai người không dùng AI. unsaved.js bảo vệ nội dung chờ lưu. Giao diện nhắn tin nháp và các form trùng đã bỏ. Chi tiết: FRONTEND_V10.md.
+
+# Cập nhật UX V9
+
+Quản trị còn 4 nhóm chính; workspace dùng menu theo ngữ cảnh. Ngày sinh/hôn nhân mở tại hồ sơ/cây. Chi tiết: FRONTEND_UX_V9.md. Các chức năng và giới hạn dữ liệu của V8 giữ nguyên, trừ thay đổi UX được mô tả.
+
+# Ma trận frontend — cập nhật V8
+
+| Phần bổ sung | Mã nguồn | Trạng thái |
+|---|---|---|
+| Tạo/tham gia/duyệt gia đình | workspace.html, workspace.js | Frontend mẫu; kiểm tra DOM |
+| Tài khoản, quyền và liên kết người | identity.js, permissions.js, workspace.js | Quyền UI; chưa có bảo mật backend |
+| Ngày sinh/mất, thông tin hôn nhân | data-validation.js, workspace.js | Frontend mẫu |
+| Thông báo chung/kiểm duyệt | workspace.js, notification-store.js | Frontend mẫu |
+| Dữ liệu cá nhân theo tài khoản | family-store.js | Bản lưu riêng trong từng gia đình |
+| Phát hiện xung đột dữ liệu | family-store.js, frontend-shell.js | Kiểm tra revision/bản lưu; chặn ghi đè |
+| API mô phỏng | api.js, demo-api.js | Chưa gửi HTTP; module cũ vẫn có truy cập đồng bộ |
+| PWA | manifest.json, sw.js, pwa.js | Có mã/icon/cache tĩnh; chưa thử thiết bị thật |
+| Kiểm thử | frontend/tests | Các trường hợp trong FRONTEND_VALIDATION_V8.md |
+
+Xem FRONTEND_COMPLETION_V8.md để biết thay đổi, cách chạy và giới hạn.
+
+## Ma trận đầu vào V7 — tham khảo lịch sử
+
 # Ma trận trạng thái các trang Frontend
 
 

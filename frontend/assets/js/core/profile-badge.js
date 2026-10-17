@@ -9,7 +9,7 @@
       const state = JSON.parse(localStorage.getItem(KEY) || 'null');
       if (state?.version === 1 && state.profile) return state.profile;
     } catch (_) { /* localStorage bị chặn hoặc dữ liệu chưa hợp lệ */ }
-    return { name: 'Nguyễn Văn A', avatar: '' };
+    return { name: window.FamilyIdentity?.name()||'Tài khoản', avatar: '' };
   }
   const safeImage = s => typeof s === 'string' &&
     (/^data:image\/(jpeg|png);base64,[a-z\d+/=]+$/i.test(s) || /^\.\.\/assets\/images\/[\w-]+\.svg$/.test(s));

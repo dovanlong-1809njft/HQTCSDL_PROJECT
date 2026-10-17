@@ -1,12 +1,12 @@
 /* Shared event demo helpers. All event wall times are Asia/Ho_Chi_Minh (UTC+7). */
 (function(){'use strict';
-const S=window.FamilyStore,ME='preview-user';
+const S=window.FamilyStore,ME=window.FamilyIdentity.id();
 function today(){const p=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Ho_Chi_Minh',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());return ['year','month','day'].map(k=>p.find(x=>x.type===k).value).join('-');}
 const instant=s=>new Date(s+':00+07:00').getTime();
 function valid(s){if(!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(s))return false;const [date,time]=s.split('T'),[y,m,d]=date.split('-').map(Number),[h,min]=time.split(':').map(Number);return y>=1900&&y<=9999&&m>=1&&m<=12&&d>=1&&d<=new Date(Date.UTC(y,m,0)).getUTCDate()&&h<24&&min<60;}
 function dayOffset(n){const date=new Date(today()+'T00:00:00Z');date.setUTCDate(date.getUTCDate()+n);return date.toISOString().slice(0,10);}
 function seed(f){const spec=[['Gặp mặt gia đình cuối tuần','meeting',5,5,'18:00','21:30','Không gian sum họp · địa điểm mẫu','gathering'],['Lễ giỗ tổ '+f.name,'tradition',18,18,'08:00','11:30','Nhà thờ họ · địa điểm mẫu','memory'],['Mừng sinh nhật người thân','birthday',-3,-3,'17:00','20:00','Nhà người thân · địa điểm mẫu','gathering'],['Chuyến du lịch gia đình','travel',30,32,'06:00','18:00','Điểm du lịch · địa điểm mẫu','travel']];return {version:1,items:spec.map(([title,category,start,end,a,b,location,cover],i)=>({id:f.id+'-event-'+(i+1),title,category,start:dayOffset(start)+'T'+a,end:dayOffset(end)+'T'+b,location,description:'Sự kiện minh họa để cả nhà cùng kết nối và chia sẻ những khoảnh khắc ý nghĩa.',organizer:f.members[i%Math.max(1,f.members.length)]?.id||ME,organizerName:f.members[i%Math.max(1,f.members.length)]?.name||'Nguyễn Văn A',cover,featured:i===0||i===3,cancelled:false,participants:Object.fromEntries(f.members.slice(0,3+i).map(m=>[m.id,'going'])),album:[],createdAt:new Date().toISOString()})),reminders:[]};}
-function ensure(f){if(!f.eventData||!Array.isArray(f.eventData.items)){f.eventData=seed(f);S.update(f);}const ids=new Set([...f.members.map(m=>m.id),ME]);f.eventData.items.forEach(e=>{for(const id of Object.keys(e.participants))if(!ids.has(id))delete e.participants[id];});return f;}
+function ensure(f){if(!f.eventData||!Array.isArray(f.eventData.items)){f.eventData=seed(f);S.update(f);}const ids=new Set([...f.members.map(m=>m.id),...window.FamilyIdentity.accounts().map(u=>u.id),ME]);f.eventData.items.forEach(e=>{for(const id of Object.keys(e.participants))if(!ids.has(id))delete e.participants[id];});return f;}
 function overlap(e,day){return !e.cancelled&&instant(e.start)<instant(day+'T23:59')+60000&&instant(e.end)>instant(day+'T00:00');}
 function status(e){const now=Date.now();return e.cancelled?'Đã hủy':instant(e.end)<=now?'Đã kết thúc':instant(e.start)<=now?'Đang diễn ra':'Sắp diễn ra';}
 window.EventDemo=Object.freeze({ME,today,instant,valid,dayOffset,ensure,overlap,status});
