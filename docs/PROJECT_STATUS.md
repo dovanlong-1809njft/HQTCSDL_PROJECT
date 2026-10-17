@@ -1,3 +1,19 @@
+# Cập nhật mới nhất — frontend V10
+
+Hoàn thành hai nhóm công việc đã thống nhất: biểu mẫu chỉnh sửa người thân dùng chung/tên hành động; cảnh báo chưa lưu, truy vấn quan hệ hai người và dọn giao diện/mã trùng. Xem FRONTEND_V10.md. Chưa thực hiện nghiệm thu trình duyệt/điện thoại thật. Backend/database giữ nguyên. Nội dung V9/V8 dưới đây là lịch sử.
+
+# Cập nhật mới nhất — frontend V9
+
+Đã tinh gọn điều hướng, gom khu quản trị, bổ sung hướng dẫn bắt đầu và biểu mẫu người thân/ngày sinh/hôn nhân tại chỗ. Xem FRONTEND_UX_V9.md. Backend/database giữ nguyên. Ghi chú V8 bên dưới là lịch sử.
+
+# Trạng thái mới nhất — frontend V8 ngày 17/10/2026
+
+Bản cập nhật hiện tại sửa frontend trên FamilyConnect_Frontend (2).zip. Chi tiết mới nhất: FRONTEND_COMPLETION_V8.md và FRONTEND_VALIDATION_V8.md. Các ghi chú V7 dưới đây là lịch sử của đầu vào; khi khác nhau, dùng hai tài liệu V8.
+
+Đã bổ sung workspace.html và các luồng tạo/tham gia/duyệt gia đình, liên kết tài khoản, hôn nhân, thông báo chung, kiểm duyệt, quyền UI, dữ liệu riêng và bản lưu frontend. Bổ sung manifest/icon/service worker cho PWA tĩnh; chưa kiểm chứng cài trên thiết bị thật. Toàn bộ backend/database vẫn nguyên trạng khung như đầu vào, không được triển khai trong lần cập nhật này.
+
+## Lịch sử đầu vào
+
 # Trạng thái dự án FamilyConnect — chụp tại ZIP ngày 16/10/2026
 
 ## Tóm tắt theo mức độ hoàn thành

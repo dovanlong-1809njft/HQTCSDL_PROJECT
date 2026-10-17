@@ -18,6 +18,7 @@
   const storeJSON = (key, value) => { localStorage.setItem(key, JSON.stringify(value)); };
   function getSession() {
     const s = readJSON(K_SESSION, null);
+    if (s && readJSON('familyconnect.demo.blocked.v1', []).includes(s.id)) return null;
     return s && s.mode === 'frontend-preview' && typeof s.id === 'string' && typeof s.name === 'string' ? s : null;
   }
   function getTheme() { try { return localStorage.getItem(K_THEME) === 'dark' ? 'dark' : 'light'; } catch (_) { return 'light'; } }
@@ -87,6 +88,7 @@
     if (!identity || !password) throw Error('Vui lòng nhập tên tài khoản và mật khẩu.');
     if ((identity === DEMO_EMAIL || identity === 'demo') && password === DEMO_PASSWORD) return startSession({ id: 'demo', name: 'Nguyễn Văn A', email: DEMO_EMAIL });
     const account = accounts().find(a => a.username === identity || a.email === identity);
+    if(account&&readJSON('familyconnect.demo.blocked.v1',[]).includes(account.id))throw Error('Tài khoản mẫu đã bị khóa.');
     if (!account || !account.hash || !account.salt) throw Error('Tên tài khoản hoặc mật khẩu không chính xác.');
     let candidate;
     try { candidate = await derive(password, b64ToBytes(account.salt)); }
@@ -96,11 +98,12 @@
   }
   function targetPage(raw) {
     // Chỉ điều hướng nội bộ tới các trang trong whitelist; không dùng URL do bên ngoài cung cấp.
-    const allowed = ['dashboard','family','genealogy','directory','community','events','heritage','ai-assistant','reports','notifications','profile','admin'];
+    const allowed = ['dashboard','family','genealogy','directory','community','events','heritage','ai-assistant','reports','notifications','profile','admin','workspace'];
     const normalized = String(raw || '').split(/[?#]/)[0];
     const file = normalized.split('/').pop();
     return allowed.some(name => name + '.html' === file) ? file : 'dashboard.html';
   }
+  function landingPage(){const current=getSession();if(!current)return 'login.html';const data=readJSON('familyconnect.family-demo.v1',null);const joined=Object.values(data?.families||{}).some(f=>f.memberships?.[current.id]?.status==='active'||current.id==='demo'&&['le','nguyen'].includes(f.id)&&!f.memberships?.demo);return joined||current.id==='demo'&&!data?'dashboard.html':'workspace.html';}
   function requireSession() {
     const pathname = location.pathname.split('/').pop();
     if (['login.html','register.html','index.html',''].includes(pathname)) return;
@@ -109,5 +112,5 @@
     }
   }
   requireSession();
-  window.FamilyDemoAuth = Object.freeze({ getSession, login, register, signOut, getTheme, setTheme, targetPage, DEMO_EMAIL, DEMO_PASSWORD });
+  window.FamilyDemoAuth = Object.freeze({ getSession, landingPage, login, register, signOut, getTheme, setTheme, targetPage, DEMO_EMAIL, DEMO_PASSWORD });
 }());

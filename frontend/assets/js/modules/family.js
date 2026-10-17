@@ -5,8 +5,8 @@
   if (!S || !document.getElementById('family-name')) return;
   const $=id=>document.getElementById(id);
   const make=(tag,cls,text)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(text!==undefined)e.textContent=text;return e;};
-  let family=S.get(), editingMember=null, editingBranch=null, detailMember=null, draftPhoto='', photoVersion=0, confirmAction=null;
-  const dialogIds=['family-dialog','member-dialog','members-dialog','detail-dialog','branch-dialog','confirm-dialog','activities-dialog'];
+  let family=S.get(), editingBranch=null, detailMember=null, draftPhoto='', photoVersion=0, confirmAction=null;
+  const dialogIds=['family-dialog','members-dialog','detail-dialog','branch-dialog','confirm-dialog','activities-dialog'];
   function toast(text){ window.FamilyUI?.toast(text); }
   function initials(name){return name.trim().split(/\s+/).slice(-2).map(w=>w.charAt(0)).join('').toUpperCase();}
   function date(text){const d=new Date(text);return Number.isNaN(d.getTime())?'Chưa có':d.toLocaleDateString('vi-VN');}
@@ -59,30 +59,13 @@
     activity('family','Đã cập nhật thông tin gia đình.');persist('Đã lưu thông tin gia đình trên trình duyệt.');close('family-dialog');
   });
   function branchOptions(node,all=false){const previous=node.value;node.replaceChildren(make('option','',all?'Tất cả chi nhánh':'Chưa phân nhánh'));node.options[0].value=all?'all':'';family.branches.forEach(b=>{const o=make('option','',b.name);o.value=b.id;node.append(o);});if(all){const o=make('option','','Chưa phân nhánh');o.value='unassigned';node.append(o);}if([...node.options].some(o=>o.value===previous))node.value=previous;}
-  function openMember(member=null){
-    editingMember=member?.id || null;$('member-form').reset();branchOptions($('member-branch'));
-    $('member-dialog-title').textContent=member?'Chỉnh sửa thành viên':'Thêm thành viên';
-    $('member-name').value=member?.name||'';$('member-generation').value=member?.generation||3;
-    $('member-branch').value=member?.branchId||'';$('member-role').value=member?.role||'Thành viên';
-    $('member-occupation').value=member?.occupation||'';$('member-quote').value=member?.quote||'';$('member-featured').checked=!!member?.featured;
-    error('member-error','');show('member-dialog');
-  }
+  function openMember(member=null){const cb=()=>{family=S.get();render();if(member){const updated=family.members.find(m=>m.id===member.id);if(updated)openDetail(updated);}};if(member)return window.FamilyDetails.edit(member.id,cb);return window.FamilyDetails.newPerson(cb);}
   $('add-member').addEventListener('click',()=>openMember());
-  $('member-form').addEventListener('submit',e=>{
-    e.preventDefault();const name=$('member-name').value.trim(),generation=Number($('member-generation').value),branchId=$('member-branch').value;
-    if(!name){error('member-error','Vui lòng nhập họ tên.');return;}
-    if(!Number.isInteger(generation)||generation<1||generation>20){error('member-error','Thế hệ phải là số nguyên từ 1 đến 20.');return;}
-    if(branchId&&!family.branches.some(b=>b.id===branchId)){error('member-error','Chi nhánh không còn tồn tại.');return;}
-    const member={...(family.members.find(m=>m.id===editingMember)||{}),id:editingMember||S.uid(),name,generation,branchId,role:$('member-role').value,occupation:$('member-occupation').value.trim(),quote:$('member-quote').value.trim(),featured:$('member-featured').checked};
-    if(editingMember && (family.relations||[]).some(r=>r.type==='parent' && ((r.from===editingMember && generation>=family.members.find(m=>m.id===r.to)?.generation)||(r.to===editingMember && generation<=family.members.find(m=>m.id===r.from)?.generation)))){error('member-error','Thế hệ phải phù hợp với quan hệ cha mẹ–con đã có trong Cây gia phả.');return;}
-    if(editingMember)family.members[family.members.findIndex(m=>m.id===editingMember)]=member;else family.members.push(member);
-    activity('member',(editingMember?'Đã cập nhật hồ sơ ':'Đã thêm thành viên ')+name+'.');persist(editingMember?'Đã cập nhật thành viên mẫu.':'Đã thêm thành viên mẫu.');close('member-dialog');
-  });
   function openDetail(member){
     detailMember=member.id;const target=$('member-detail');target.replaceChildren();
     const header=make('div','member-detail');header.append(make('span','member-avatar',initials(member.name)));
     const name=make('div');name.append(make('h3','',member.name),make('p','small',member.role));header.append(name);target.append(header);
-    const dl=make('dl');[['Thế hệ',member.generation],['Chi nhánh',branchName(member.branchId)],['Nghề nghiệp',member.occupation||'Chưa cập nhật'],['Lời nhắn',member.quote||'Chưa cập nhật']].forEach(([label,value])=>dl.append(make('dt','',label),make('dd','',String(value))));target.append(dl);show('detail-dialog');
+    const dl=make('dl');[['Thế hệ',member.generation],['Chi nhánh',branchName(member.branchId)],['Nghề nghiệp',member.occupation||'Chưa cập nhật'],['Lời nhắn',member.quote||'Chưa cập nhật']].forEach(([label,value])=>dl.append(make('dt','',label),make('dd','',String(value))));target.append(dl);if(S.membership(family).role==='admin'){const b=make('button','btn btn-secondary','Cập nhật ngày sinh / ngày mất');b.type='button';b.onclick=()=>window.FamilyDetails.dates(member.id,()=>{family=S.get();render();openDetail(family.members.find(m=>m.id===member.id));});target.append(b);}show('detail-dialog');
   }
   $('edit-member-detail').addEventListener('click',()=>{const member=family.members.find(m=>m.id===detailMember);close('detail-dialog');if(member)openMember(member);});
   $('delete-member-detail').addEventListener('click',()=>{const member=family.members.find(m=>m.id===detailMember);close('detail-dialog');if(!member)return;confirm('Xóa thành viên mẫu?', 'Xóa hồ sơ '+member.name+' cùng các quan hệ liên quan khỏi gia đình mẫu trên trình duyệt?',()=>{family.members=family.members.filter(m=>m.id!==member.id);activity('member','Đã xóa hồ sơ '+member.name+'.');persist('Đã xóa thành viên mẫu.');});});
@@ -116,7 +99,7 @@
   $('reset-family').addEventListener('click',()=>confirm('Khôi phục dữ liệu mẫu?', 'Thông tin, ảnh, thành viên và chi nhánh bạn đã sửa của gia đình này sẽ trở về ban đầu. Gia đình còn lại không bị thay đổi.',()=>{S.reset();family=S.get();render();toast('Đã khôi phục gia đình mẫu.');}));
   $('family-select').value=S.getActive();
   $('family-select').addEventListener('change',e=>{S.setActive(e.target.value);family=S.get();render();toast('Đã chuyển gia đình mẫu.');});
-  function render(){
+  function render(){$('reset-family').hidden=!['le','nguyen'].includes(family.id);
     $('family-name').textContent=family.name;document.title=family.name+' | FamilyConnect';$('family-description').textContent=family.description||'Chưa cập nhật mô tả.';photo($('family-photo'),family.photo);
     [...$('family-select').options].forEach(o=>o.textContent=S.get(o.value).name+' · mẫu');
     const data={members:family.members.length,branches:family.branches.length,posts:family.posts,heritage:family.heritage};Object.entries(data).forEach(([k,v])=>$('family-stat-'+k).textContent=String(v));

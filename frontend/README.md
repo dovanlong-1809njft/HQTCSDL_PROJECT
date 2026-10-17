@@ -48,3 +48,24 @@ Mở `http://localhost:5500/`: **chưa có phiên dùng thử** sẽ chuyển th
 ## Tài liệu chi tiết
 
 Đọc `../docs/README.md`, `../docs/FRONTEND_FEATURE_MATRIX.md`, `../docs/DEVELOPMENT_HISTORY.md` và các file `FRONTEND_*.md` theo chức năng. Những file hướng dẫn phiên bản cũ là **lịch sử**, không đồng nghĩa mọi kiểm thử vẫn đạt ở bản mới.
+# FamilyConnect Frontend V8 — giao diện và nghiệp vụ mẫu
+
+HTML/CSS/JavaScript thuần. Chạy từ thư mục dự án chứa frontend:
+
+```powershell
+py -m http.server 5500 --directory frontend
+```
+
+Mở http://localhost:5500/ rồi Ctrl+F5. Đăng nhập demo / Demo@12345 hoặc đăng ký tài khoản mẫu. Quản lý gia đình: pages/workspace.html.
+
+- pages: các trang giao diện HTML.
+- assets/css: tệp CSS định dạng giao diện, có sáng/tối và kích thước màn hình.
+- assets/js/core: xử lý dùng chung như tài khoản, dữ liệu, quyền mẫu và sidebar.
+- assets/js/modules: xử lý chức năng từng trang bằng JavaScript.
+- assets/images: hình minh họa và icon ứng dụng.
+- manifest.json: mô tả cài web app; sw.js: xử lý cache tệp tĩnh PWA.
+- tests: kiểm tra DOM bằng jsdom, không cần cài khi chỉ chạy web.
+
+Hướng dẫn thay đổi và kiểm chứng: ../docs/FRONTEND_COMPLETION_V8.md. Trạng thái: ../docs/FRONTEND_VALIDATION_V8.md.
+
+Dữ liệu lưu trên trình duyệt theo origin. Người trong gia phả khác tài khoản đăng nhập. Quyền ở đây chỉ mô phỏng frontend; chưa dùng cho hệ thống thật nhiều người. Backend, SQL Server và AI thật được triển khai ở giai đoạn sau.

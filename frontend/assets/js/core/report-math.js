@@ -9,7 +9,7 @@ function buckets(from,to,group){const rows=[],a=Number(from.slice(0,4)),b=Number
 function groupKey(day,group){if(group==='year')return day.slice(0,4);if(group==='quarter')return day.slice(0,4)+'-Q'+(Math.floor((Number(day.slice(5,7))-1)/3)+1);return day.slice(0,7);}
 function build(f,from,to,now=Date.now()){
  const loaded={posts:Array.isArray(f.community?.posts),events:Array.isArray(f.eventData?.items),resources:Array.isArray(f.heritageData?.items)};
- const allPosts=loaded.posts?f.community.posts:[],allEvents=loaded.events?f.eventData.items:[],allResources=loaded.resources?f.heritageData.items:[];
+ const allPosts=loaded.posts?f.community.posts.filter(p=>p.status!=='hidden'):[],allEvents=loaded.events?f.eventData.items:[],allResources=loaded.resources?f.heritageData.items.filter(r=>r.status!=='hidden'):[];
  const inside=day=>Boolean(day)&&day>=from&&day<=to;
  const posts=allPosts.filter(p=>inside(dayISO(p.createdAt))),resources=allResources.filter(r=>inside(dayISO(r.createdAt)));
  const scheduled=allEvents.filter(e=>!e.cancelled&&inside(eventDay(e.start))),ended=allEvents.filter(e=>!e.cancelled&&inside(eventDay(e.end))&&new Date(e.end+':00+07:00').getTime()<=now),createdEvents=allEvents.filter(e=>!e.cancelled&&inside(dayISO(e.createdAt)));
@@ -20,7 +20,7 @@ function build(f,from,to,now=Date.now()){
  function classify(records,field,labels){const map=new Map(Object.keys(labels).map(k=>[k,0]));records.forEach(r=>{const key=Object.hasOwn(labels,r[field])?r[field]:'unknown';map.set(key,(map.get(key)||0)+1);});return [...map].map(([key,count])=>({key,label:labels[key]||'Khác / chưa rõ',count}));}
  const attachments=resources.flatMap(r=>r.attachments||[]),fileLabels={image:'Hình ảnh',pdf:'PDF',text:'TXT',docx:'DOCX'},files=classify(attachments,'kind',fileLabels);
  const media={images:posts.reduce((n,p)=>n+(p.images||[]).length,0)+attachments.filter(a=>a.kind==='image').length+scheduled.reduce((n,e)=>n+(e.album||[]).length,0),videos:posts.filter(p=>Boolean(p.video)).length+attachments.filter(a=>a.kind==='video').length};
- const people=new Map(),memberName=id=>id==='preview-user'?'Nguyễn Văn A · mẫu':f.members.find(m=>m.id===id)?.name;
+ const people=new Map(),memberName=id=>id===window.FamilyIdentity.id()?window.FamilyIdentity.name():f.members.find(m=>m.id===id)?.name;
  function credit(id,fallback,key){const who=id||'unknown',row=people.get(who)||{id:who,name:memberName(id)||fallback||'Không rõ người',posts:0,comments:0,resources:0,events:0,total:0};row[key]++;row.total++;people.set(who,row);}
  posts.forEach(p=>credit(p.authorId,p.authorName,'posts'));comments.forEach(c=>credit(c.authorId,c.authorName,'comments'));resources.forEach(r=>credit(r.contributorId,r.contributorName,'resources'));createdEvents.forEach(e=>credit(e.organizer,e.organizerName,'events'));
  const contributors=[...people.values()].sort((a,b)=>b.total-a.total||a.name.localeCompare(b.name,'vi'));

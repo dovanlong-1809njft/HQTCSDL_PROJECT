@@ -1,0 +1,19 @@
+/* Hoàn thiện hành vi dùng chung: gia đình động, cảnh báo xung đột, lỗi và quyền UI. */
+(()=>{'use strict';const S=window.FamilyStore;
+function showError(message){let n=document.getElementById('fc-error');if(!n){n=document.createElement('div');n.id='fc-error';n.className='fc-error';n.setAttribute('role','alert');document.body.append(n);}n.replaceChildren(document.createTextNode(message+' '));const b=document.createElement('button');b.className='btn btn-secondary';b.textContent='Tải lại trang';b.onclick=()=>location.reload();n.append(b);n.hidden=false;}
+window.addEventListener('error',e=>{if(e.error)showError(e.error.message||'Không thực hiện được thao tác. Vui lòng thử lại.');});window.addEventListener('unhandledrejection',e=>showError(e.reason?.message||'Không đọc được dữ liệu. Vui lòng thử lại.'));
+window.addEventListener('storage',e=>{if(e.key==='familyconnect.family-demo.v1')showError('Dữ liệu gia đình đã thay đổi ở tab khác. Tải lại trước khi tiếp tục lưu.');if(e.key==='familyconnect.demo.session.v1')showError('Phiên đăng nhập đã thay đổi ở tab khác. Tải lại để dùng đúng tài khoản.');});
+function pickers(){document.querySelectorAll('#family-select,#family-picker').forEach(n=>{const current=S.getActive();n.replaceChildren(...S.list().filter(f=>f.status==='active').map(f=>new Option(f.name+' · mẫu',f.id)));n.value=current;});}
+// Populate synchronously before page modules access the picker.
+pickers();
+document.addEventListener('change',e=>{if(['family-select','family-picker'].includes(e.target.id)){document.querySelectorAll('dialog[open]').forEach(d=>d.close());}},true);
+document.addEventListener('DOMContentLoaded',()=>{pickers();const content=document.getElementById('main-content');
+const f=S.get(),membership=S.membership(f),page=location.pathname.split('/').pop();if(!['workspace.html','profile.html'].includes(page)&&membership.status!=='active'){if(content){content.hidden=true;content.inert=true;}const panel=document.createElement('section');panel.className='panel fc-empty-state';panel.innerHTML='<h1>Chưa được truy cập gia đình</h1><p>Yêu cầu tham gia cần được quản trị viên duyệt.</p><a class="btn" href="workspace.html">Về danh sách gia đình</a>';content?.after(panel);}
+if(page==='admin.html'&&membership.role!=='admin'){if(content){content.hidden=true;content.inert=true;}const n=document.createElement('section');n.className='panel fc-empty-state';n.innerHTML='<h1>Không đủ quyền giao diện</h1><p>Trang này dành cho quản trị viên gia đình trong bản mẫu.</p><a class="btn" href="workspace.html">Về gia đình của tôi</a>';content?.after(n);}
+// Links remain available, but mutations reserved for family admins are disabled in the UI.
+if(membership.role!=='admin'&&['family.html','genealogy.html','directory.html'].includes(page)){const selector='button[id*="add"],button[id*="edit"],button[id*="delete"],button[id*="reset"],button[id*="save"],button[id*="remove"],button[id="open-members"],button[id="open-family-editor"]';const apply=()=>{document.querySelectorAll('button').forEach(b=>{if(/^(Thêm|Chỉnh sửa|Sửa|Xóa|Khôi phục|Lưu thành viên|Lưu quan hệ)/.test(b.textContent.trim())){b.disabled=true;b.title='Dành cho quản trị viên gia đình';}});document.querySelectorAll(selector).forEach(b=>{b.disabled=true;b.title='Thao tác dành cho quản trị viên gia đình mẫu';});};apply();new MutationObserver(apply).observe(content,{childList:true,subtree:true});}
+// Consistent failed-image fallback, including broken remote/local URLs.
+document.addEventListener('error',e=>{if(e.target instanceof HTMLImageElement){e.target.classList.add('fc-image-failed');e.target.alt='Không tải được ảnh';}},true);
+// Keep buttons reachable when a phone keyboard or long content opens a dialog.
+document.querySelectorAll('dialog').forEach(d=>d.addEventListener('close',()=>{d.querySelectorAll('[type=file]').forEach(i=>i.value='');}));
+});window.FamilyFrontend=Object.freeze({showError,pickers});})();
