@@ -1,6 +1,17 @@
-# TRẠNG THÁI: KHUNG; CHƯA CHẠY docker compose up ĐƯỢC.
-# Bắt buộc hoàn thiện ngày 15–18: backend + worker nhắc lịch (nếu dùng)
-# + reverse proxy HTTPS khi triển khai + volume uploads bền vững.
-# SQL Server: chọn instance sẵn có hoặc container phù hợp máy và giấy phép.
-# Cấu hình healthcheck/restart/volume là độ bền vận hành cơ bản, KHÔNG phải HA.
-# Không đưa mật khẩu/API key vào image hoặc commit.
+# SQL Server cho môi trường phát triển của đồ án.
+services:
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    restart: unless-stopped
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: "Developer"
+      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD:?Set MSSQL_SA_PASSWORD in the project .env file}"
+    ports:
+      # Thành viên kết nối tới IPv4 máy host, cổng 1433.
+      - "1433:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+
+volumes:
+  sqlserver_data:
