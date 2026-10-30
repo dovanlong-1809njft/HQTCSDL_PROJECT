@@ -1,35 +1,13 @@
 <!doctype html>
 <html lang="vi">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>FamilyConnect — Đang mở ứng dụng</title>
-  <meta name="description" content="FamilyConnect — Kết nối các thế hệ và lưu giữ câu chuyện gia đình.">
-  <!--
-    Điểm vào chính của FamilyConnect.
-    CHẾ ĐỘ HIỆN TẠI: phiên đăng nhập mô phỏng, lưu trên trình duyệt (localStorage).
-    Không dùng kiểm tra này làm bảo vệ tài nguyên thực: khi có Backend cần xác thực
-    và phân quyền từng yêu cầu ngay trên FastAPI/SQL Server.
-  -->
-  <script src="assets/js/core/auth.js"></script>
-  <script>
-    (function () {
-      'use strict';
-      // Đã đăng nhập bản mẫu: vào Tổng quan; chưa đăng nhập: vào Đăng nhập.
-      // replace() tránh để lại một bước chuyển trang trong nút Quay lại của trình duyệt.
-      var auth = window.FamilyDemoAuth;
-      var hasSession = !!(auth && auth.getSession());
-      window.location.replace(hasSession ? 'pages/dashboard.html' : 'pages/login.html');
-    }());
-  </script>
-</head>
-<body>
-  <main style="max-width:38rem;margin:5rem auto;padding:1.5rem;font:16px/1.6 system-ui,sans-serif;">
-    <h1>FamilyConnect</h1>
-    <p>Gắn kết các thế hệ, gìn giữ câu chuyện gia đình.</p>
-    <p>Đang mở ứng dụng… Nếu không tự chuyển trang, vui lòng chọn:</p>
-    <p><a href="pages/login.html">Đăng nhập</a> · <a href="pages/dashboard.html">Trang Tổng quan</a></p>
-  </main>
-  <noscript>Vui lòng bật JavaScript để sử dụng phiên đăng nhập mô phỏng của FamilyConnect.</noscript>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#244b3e" />
+    <title>FamilyConnect</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
 </html>

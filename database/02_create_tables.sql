@@ -1,4 +1,0 @@
--- Tạo bảng và khóa chính
--- SQL Server / T-SQL. TRẠNG THÁI: KHUNG, CHƯA TRIỂN KHAI.
--- TODO: Triển khai 27 bảng trong docs/database-design.md; NVARCHAR, DATE, DATETIME2, BIT.
--- Chỉ chạy trên CSDL demo sau khi đã viết và rà soát mã.

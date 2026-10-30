@@ -1,4 +1,0 @@
--- Kiểm thử khóa/ràng buộc
--- SQL Server / T-SQL. TRẠNG THÁI: KHUNG, CHƯA TRIỂN KHAI.
--- TODO: Email trùng, RSVP trùng, FK sai gia đình phải bị từ chối.
--- Chỉ chạy trên CSDL demo sau khi đã viết và rà soát mã.

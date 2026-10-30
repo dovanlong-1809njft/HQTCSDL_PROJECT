@@ -1,5 +1,0 @@
--- Sao lưu thủ công cho DBA
--- SQL Server / T-SQL. TRẠNG THÁI: KHUNG, CHƯA TRIỂN KHAI.
--- TODO: BACKUP DATABASE ra đường dẫn trên MÁY CHỦ SQL Server, không phải đường dẫn trình duyệt.
--- TODO: Chọn đường dẫn và quyền ghi phù hợp; không commit file .bak.
--- Chỉ chạy trên CSDL demo sau khi đã viết và rà soát mã.

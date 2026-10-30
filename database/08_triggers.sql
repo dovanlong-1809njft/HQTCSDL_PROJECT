@@ -1,5 +1,0 @@
--- Bộ kích hoạt khi có nghiệp vụ phù hợp
--- SQL Server / T-SQL. TRẠNG THÁI: KHUNG, CHƯA TRIỂN KHAI.
--- TODO: Nếu dùng trigger audit, hỗ trợ nhiều dòng và không ghi trùng audit do thủ tục đã ghi.
--- TODO: Không dùng trigger thay thế toàn bộ phân quyền API.
--- Chỉ chạy trên CSDL demo sau khi đã viết và rà soát mã.

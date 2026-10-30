@@ -1,4 +1,0 @@
--- Kiểm thử commit/rollback
--- SQL Server / T-SQL. TRẠNG THÁI: KHUNG, CHƯA TRIỂN KHAI.
--- TODO: Thêm người và quan hệ lỗi không để lại dữ liệu dở dang.
--- Chỉ chạy trên CSDL demo sau khi đã viết và rà soát mã.

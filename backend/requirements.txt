@@ -1,7 +1,7 @@
-# Thư viện nền tảng của bộ khung. Chốt phiên bản sau khi chạy tích hợp trên máy nhóm.
 fastapi
 uvicorn[standard]
-pyodbc
-python-dotenv
-# Danh sách bổ sung theo module: docs/dependencies.md.
-# Chưa tuyên bố các dependency được kiểm thử cùng nhau.
+sqlalchemy[mssql-python]>=2.1
+alembic
+pwdlib[argon2]
+PyJWT
+email-validator

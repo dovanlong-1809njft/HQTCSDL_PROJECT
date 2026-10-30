@@ -1,6 +1,0 @@
--- Khôi phục thử trên CSDL riêng
--- SQL Server / T-SQL. TRẠNG THÁI: KHUNG, CHƯA TRIỂN KHAI.
--- TODO: RESTORE FILELISTONLY và VERIFYONLY khi thích hợp; restore sang FamilyConnectRestoreTest.
--- TODO: Không tự ghi đè FamilyConnectDB; không dùng WITH REPLACE mặc định.
--- TODO: So sánh dữ liệu và chạy smoke test sau restore; VERIFYONLY không thay thế restore thật.
--- Chỉ chạy trên CSDL demo sau khi đã viết và rà soát mã.

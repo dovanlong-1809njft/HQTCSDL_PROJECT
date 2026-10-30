@@ -1,5 +1,0 @@
--- Truy vấn báo cáo
--- SQL Server / T-SQL. TRẠNG THÁI: KHUNG, CHƯA TRIỂN KHAI.
--- TODO: Nhân khẩu học, thế hệ, bài đăng, phản ứng, sự kiện và RSVP theo khoảng ngày.
--- TODO: Thống nhất công thức với dashboard và CSV.
--- Chỉ chạy trên CSDL demo sau khi đã viết và rà soát mã.

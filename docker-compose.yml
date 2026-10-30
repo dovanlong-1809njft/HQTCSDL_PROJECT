@@ -1,17 +1,36 @@
-# SQL Server cho môi trường phát triển của đồ án.
 services:
   db:
     image: mcr.microsoft.com/mssql/server:2025-latest
-    restart: unless-stopped
     environment:
       ACCEPT_EULA: "Y"
-      MSSQL_PID: "Developer"
-      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD:?Set MSSQL_SA_PASSWORD in the project .env file}"
+      MSSQL_PID: Developer
+      MSSQL_DB: ${MSSQL_DB:-FamilyConnect}
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:-FamilyConnect_2025!}
     ports:
-      # Thành viên kết nối tới IPv4 máy host, cổng 1433.
       - "1433:1433"
     volumes:
       - sqlserver_data:/var/opt/mssql
+
+  backend:
+    build: ./backend
+    environment:
+      MSSQL_HOST: db
+      MSSQL_PORT: 1433
+      MSSQL_DB: ${MSSQL_DB:-FamilyConnect}
+      MSSQL_USER: ${MSSQL_USER:-sa}
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:-FamilyConnect_2025!}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-dev-familyconnect-secret-change-before-deployment-32-chars-min}
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    depends_on:
+      - db
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+    depends_on:
+      - backend
 
 volumes:
   sqlserver_data:

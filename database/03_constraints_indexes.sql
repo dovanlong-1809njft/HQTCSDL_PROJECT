@@ -1,5 +1,0 @@
--- Ràng buộc và chỉ mục
--- SQL Server / T-SQL. TRẠNG THÁI: KHUNG, CHƯA TRIỂN KHAI.
--- TODO: Khóa ngoại cùng FamilyID, UNIQUE email/RSVP, CHECK ngày/trạng thái.
--- TODO: Chỉ mục truy vấn thường dùng; quan hệ cha-con chống chu trình bằng thủ tục giao tác.
--- Chỉ chạy trên CSDL demo sau khi đã viết và rà soát mã.

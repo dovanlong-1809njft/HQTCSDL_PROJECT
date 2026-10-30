@@ -1,5 +1,0 @@
--- Kiểm thử hai phiên SSMS
--- SQL Server / T-SQL. TRẠNG THÁI: KHUNG, CHƯA TRIỂN KHAI.
--- TODO: Hai phiên tranh chỗ cuối hoặc duyệt cùng yêu cầu; ghi @@SPID và thứ tự bước.
--- TODO: Hai người khác nhau tham gia sự kiện còn chỗ là hợp lệ, không được cấm.
--- Chỉ chạy trên CSDL demo sau khi đã viết và rà soát mã.

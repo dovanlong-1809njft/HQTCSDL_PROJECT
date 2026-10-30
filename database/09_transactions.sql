@@ -1,5 +1,0 @@
--- Minh họa ACID
--- SQL Server / T-SQL. TRẠNG THÁI: KHUNG, CHƯA TRIỂN KHAI.
--- TODO: Luồng thành công và cố tình lỗi sau khi thêm người để chứng minh rollback.
--- TODO: Dữ liệu trước/sau rõ ràng; chạy riêng trên database demo.
--- Chỉ chạy trên CSDL demo sau khi đã viết và rà soát mã.

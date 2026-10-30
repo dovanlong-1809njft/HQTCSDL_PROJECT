@@ -1,2 +1,0 @@
-/* Cài đặt vỏ ứng dụng. Chỉ cache tệp tĩnh; không cache API hoặc tệp người dùng. */
-(()=>{'use strict';if(!('serviceWorker' in navigator)||!['https:','http:'].includes(location.protocol))return;const script=document.currentScript?.src;const url=script?new URL('../../../sw.js',script):new URL(location.pathname.includes('/pages/')?'../sw.js':'sw.js',location.href);window.addEventListener('load',()=>{navigator.serviceWorker.register(url.href).catch(()=>{window.FamilyUI?.toast('Chưa bật được chế độ ngoại tuyến. Ứng dụng vẫn dùng được khi trực tuyến.');});});})();
