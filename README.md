@@ -6,8 +6,8 @@ FamilyConnect là đề tài môn **Hệ quản trị cơ sở dữ liệu**, h�
 
 - Frontend có giao diện đăng nhập, đăng ký và trang tổng quan cơ bản.
 - Backend có health check và API đăng ký, đăng nhập, xem tài khoản hiện tại.
-- ERD là thiết kế dự kiến gồm 14 bảng thuộc 5 schema. Xem [sơ đồ ERD](docs/erd/README.md).
-- Các file SQL trong `database/schema/` và `database/seed/` đang để trống để nhóm bổ sung. Vì vậy database chưa được khởi tạo và các API cần đọc/ghi dữ liệu chưa hoạt động đầy đủ.
+- ERD và T-SQL hiện mô tả 22 bảng thuộc 5 schema. Xem [sơ đồ ERD](docs/erd/README.md).
+- Script SQL trong database/schema/ và dữ liệu mẫu trong database/seed/ đã được bổ sung. API nghiệp vụ ngoài xác thực vẫn đang được phát triển.
 - Các thư mục kiểm thử API, database và hiệu năng chưa có test thực thi. Xem [kế hoạch kiểm thử](tests/README.md).
 
 ## Công nghệ
@@ -24,8 +24,8 @@ FamilyConnect là đề tài môn **Hệ quản trị cơ sở dữ liệu**, h�
 backend/                 # API FastAPI và các module nghiệp vụ
 frontend/                # Ứng dụng web React viết bằng JavaScript
 database/
-  schema/                # Các script tạo schema và bảng; hiện đang trống
-  seed/                  # Script dữ liệu mẫu; hiện đang trống
+  schema/                # T-SQL tạo schema và 22 bảng
+  seed/                  # Dữ liệu mẫu giả cho các bảng
   shared/                # Script chỉ chạy trên DB chung (phân quyền theo schema)
   init.sh                # Chạy các file SQL theo thứ tự tên
 docs/
@@ -85,7 +85,7 @@ Các địa chỉ mặc định:
 | Swagger    | `http://localhost:8000/docs` |
 | SQL Server | `localhost,1433`             |
 
-Docker Compose khởi động các dịch vụ nhưng **không tự chạy script khởi tạo database**. Các file SQL hiện đang trống; sau khi nhóm hoàn thành chúng, cần chạy `database/init.sh` để tạo schema, bảng và dữ liệu mẫu. Muốn làm lại database từ đầu: `docker compose down -v`, chạy lại Compose rồi chạy lại `init.sh`.
+Docker Compose khởi động các dịch vụ nhưng không tự chạy script database. Khi SQL Server sẵn sàng, chạy database/init.sh từ Git Bash hoặc WSL để áp dụng schema, migration và seed. docker compose down -v xóa volume database; chỉ dùng khi muốn xóa dữ liệu cục bộ.
 
 ## Chạy backend trực tiếp
 
@@ -110,15 +110,15 @@ PowerShell không tự nạp biến trong `.env` khi chạy Uvicorn trực tiế
 
 ## Database
 
-ERD hiện mô tả các bảng dự kiến:
+ERD hiện có 22 bảng thuộc 5 schema:
 
-| Schema      | Bảng                                                            |
-| ----------- | --------------------------------------------------------------- |
-| `core`      | `Users`, `Families`, `Branches`, `MemberVerifications`          |
-| `genealogy` | `Members`, `ParentChild`, `Marriages`                           |
-| `community` | `Posts`, `Comments`, `Reactions`, `Events`, `EventParticipants` |
-| `reports`   | `AuditLog`                                                      |
-| `heritage`  | `Items`                                                         |
+| Schema | Bảng |
+| --- | --- |
+| core | Users, Families, Branches, MemberVerifications, SystemConfigs |
+| genealogy | Members, ParentChild, Marriages, Educations, WorkHistories |
+| community | Posts, PostMedia, Comments, Reactions, Events, EventParticipants, EventReminders, EventGalleries, ReportedContents |
+| reports | AuditLog |
+| heritage | Items, Honors | `Items`                                                         |
 
 Quy ước chung:
 
@@ -127,7 +127,7 @@ Quy ước chung:
 - Model SQLAlchemy phải khai báo schema, ví dụ `__table_args__ = {"schema": "genealogy"}`; nếu thiếu, backend báo `Invalid object name`.
 - Mọi file SQL phải chạy lại nhiều lần không lỗi (kiểm tra `IF OBJECT_ID(...) IS NULL` trước `CREATE TABLE`).
 
-Các script được dự kiến chạy theo thứ tự `00_schemas.sql` đến `06_heritage.sql`, sau đó `database/seed/01_seed.sql`. Xem [database/README.md](database/README.md) để biết chi tiết. Khi sửa cấu trúc đã được áp dụng, nhóm nên thêm script patch mới (ví dụ `07_patch_xxx.sql`) thay vì sửa file đã chạy.
+Các script chạy theo thứ tự 00_schemas.sql đến 07_migrate_member_occupation.sql, sau đó database/seed/01_seed.sql. Xem database/README.md. Thay đổi database đã áp dụng cần thêm migration mới, không sửa script lịch sử.
 
 ### Khởi tạo database sau khi có SQL
 
@@ -167,7 +167,7 @@ API gia phả, cộng đồng, sự kiện, di sản, dashboard và quản trị
 | Thành viên | Phần việc dự kiến                                                                |
 | ---------- | -------------------------------------------------------------------------------- |
 | 1          | `00_schemas.sql`, `01_core.sql`, `05_late_foreign_keys.sql`, review Pull Request |
-| 2          | `02_genealogy.sql` (truy vấn cây gia phả, tổ tiên, hậu duệ)                      |
-| 3          | `03_community_events.sql`                                                        |
+| 2          | 02_genealogy.sql: Members, ParentChild, Marriages, Educations, WorkHistories; truy vấn cây gia phả |
+| 3          | 03_community_events.sql: Posts, PostMedia, Events, EventReminders, EventGalleries, ReportedContents và các bảng liên quan |
 | 4          | `database/seed/01_seed.sql`                                                      |
-| 5          | `04_reports_ops.sql`, `06_heritage.sql`, view và stored procedure báo cáo        |
+| 5          | 04_reports_ops.sql, 06_heritage.sql (Items, Honors), view và stored procedure báo cáo |

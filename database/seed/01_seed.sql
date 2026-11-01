@@ -1,8 +1,8 @@
 ﻿/* =====================================================================
    database/seed/01_seed.sql
-   Người 4 — Dữ liệu mẫu cho toàn bộ 14 bảng
+   Người 4 — Dữ liệu mẫu cho toàn bộ 22 bảng
    =====================================================================
-   Chạy SAU CÙNG, khi cả 6 file trong database/schema/ đã hoàn tất.
+   Chạy SAU CÙNG, khi cả 8 file trong database/schema/ đã hoàn tất.
 
    Nguyên tắc theo database/seed/README.md:
      - Không có thông tin cá nhân thật. Email dùng miền example.invalid
@@ -34,7 +34,7 @@ SET NOCOUNT ON;
 GO
 
 /* ---------------------------------------------------------------------
-   1. Kiểm tra đủ 14 bảng trước khi chèn
+   1. Kiểm tra đủ 22 bảng trước khi chèn
    --------------------------------------------------------------------- */
 
 DECLARE @missing NVARCHAR(MAX) = N'';
@@ -53,6 +53,14 @@ IF OBJECT_ID(N'community.Events',          N'U') IS NULL SET @missing += N'commu
 IF OBJECT_ID(N'community.EventParticipants', N'U') IS NULL SET @missing += N'community.EventParticipants, ';
 IF OBJECT_ID(N'reports.AuditLog',          N'U') IS NULL SET @missing += N'reports.AuditLog, ';
 IF OBJECT_ID(N'heritage.Items',            N'U') IS NULL SET @missing += N'heritage.Items, ';
+IF OBJECT_ID(N'core.SystemConfigs',N'U') IS NULL SET @missing += N'core.SystemConfigs, ';
+IF OBJECT_ID(N'genealogy.Educations',N'U') IS NULL SET @missing += N'genealogy.Educations, ';
+IF OBJECT_ID(N'genealogy.WorkHistories',N'U') IS NULL SET @missing += N'genealogy.WorkHistories, ';
+IF OBJECT_ID(N'community.PostMedia',N'U') IS NULL SET @missing += N'community.PostMedia, ';
+IF OBJECT_ID(N'community.EventReminders',N'U') IS NULL SET @missing += N'community.EventReminders, ';
+IF OBJECT_ID(N'community.EventGalleries',N'U') IS NULL SET @missing += N'community.EventGalleries, ';
+IF OBJECT_ID(N'community.ReportedContents',N'U') IS NULL SET @missing += N'community.ReportedContents, ';
+IF OBJECT_ID(N'heritage.Honors',N'U') IS NULL SET @missing += N'heritage.Honors, ';
 
 IF LEN(@missing) > 0
 BEGIN
@@ -99,7 +107,15 @@ BEGIN TRY
        3. Dọn dữ liệu mẫu cũ, theo thứ tự con trước cha
        ----------------------------------------------------------------- */
 
-    DELETE FROM heritage.Items            WHERE CAST(Id AS CHAR(36)) LIKE 'EEEEEEEE-%';
+    DELETE FROM heritage.Honors WHERE CAST(Id AS CHAR(36)) LIKE 'F0000006-%';
+    DELETE FROM heritage.Items WHERE CAST(Id AS CHAR(36)) LIKE 'EEEEEEEE-%';
+    DELETE FROM community.ReportedContents WHERE CAST(Id AS CHAR(36)) LIKE 'F0000007-%';
+    DELETE FROM community.EventGalleries WHERE CAST(Id AS CHAR(36)) LIKE 'F0000005-%';
+    DELETE FROM community.EventReminders WHERE CAST(Id AS CHAR(36)) LIKE 'F0000004-%';
+    DELETE FROM community.PostMedia WHERE CAST(Id AS CHAR(36)) LIKE 'F0000003-%';
+    DELETE FROM genealogy.WorkHistories WHERE CAST(Id AS CHAR(36)) LIKE 'F0000002-%';
+    DELETE FROM genealogy.Educations WHERE CAST(Id AS CHAR(36)) LIKE 'F0000001-%';
+    DELETE FROM core.SystemConfigs WHERE ConfigKey IN ('demo.directory.enabled','demo.family.display_name');
     DELETE FROM reports.AuditLog          WHERE CAST(Id AS CHAR(36)) LIKE 'CCCCCCCC-%';
     DELETE FROM community.EventParticipants WHERE CAST(Id AS CHAR(36)) LIKE 'BBBBBBBB-%';
     DELETE FROM community.Events          WHERE CAST(Id AS CHAR(36)) LIKE 'AAAAAAAA-%';
@@ -144,14 +160,24 @@ BEGIN TRY
        ----------------------------------------------------------------- */
 
     INSERT INTO genealogy.Members
-        (Id, FamilyId, BranchId, UserId, FullName, BirthDate, Occupation, Location, CreatedAt)
+        (Id, FamilyId, BranchId, UserId, FullName, BirthDate, Location, CreatedAt)
     VALUES
-        (@mOng,    @fam, @brTruong, NULL,     N'Nguyễn Văn Cẩn',  '1938-03-12', N'Thợ mộc',       N'Hà Nội',           @t0),
-        (@mBa,     @fam, @brTruong, NULL,     N'Lê Thị Tâm',      '1942-07-30', N'Nội trợ',       N'Hà Nội',           @t0),
-        (@mTruong, @fam, @brTruong, @uTruong, N'Nguyễn Văn Trường','1968-11-02', N'Giáo viên',     N'Hà Nội',           @t0),
-        (@mMai,    @fam, @brTruong, @uMai,    N'Trần Thị Mai',    '1971-05-18', N'Kế toán',       N'Hà Nội',           @t0),
-        (@mHung,   @fam, @brThu,    @uHung,   N'Nguyễn Văn Hùng', '1995-09-24', N'Kỹ sư phần mềm', N'TP. Hồ Chí Minh', @t0),
-        (@mLan,    @fam, @brThu,    @uLan,    N'Nguyễn Thị Lan',  '1999-02-14', N'Sinh viên',     N'Đà Nẵng',          @t0);
+        (@mOng,@fam,@brTruong,NULL,N'Nguyễn Văn Cẩn','1938-03-12',N'Hà Nội',@t0),
+        (@mBa,@fam,@brTruong,NULL,N'Lê Thị Tâm','1942-07-30',N'Hà Nội',@t0),
+        (@mTruong,@fam,@brTruong,@uTruong,N'Nguyễn Văn Trường','1968-11-02',N'Hà Nội',@t0),
+        (@mMai,@fam,@brTruong,@uMai,N'Trần Thị Mai','1971-05-18',N'Hà Nội',@t0),
+        (@mHung,@fam,@brThu,@uHung,N'Nguyễn Văn Hùng','1995-09-24',N'TP. Hồ Chí Minh',@t0),
+        (@mLan,@fam,@brThu,@uLan,N'Nguyễn Thị Lan','1999-02-14',N'Đà Nẵng',@t0);
+
+    INSERT INTO core.SystemConfigs (ConfigKey,ConfigValue,Description,UpdatedAt)
+    VALUES ('demo.directory.enabled',N'true',N'Bật danh bạ demo.',@t0),
+           ('demo.family.display_name',N'Họ Nguyễn Văn — Thạch Thất',N'Tên gia đình demo.',@t0);
+    INSERT INTO genealogy.Educations (Id,MemberId,Institution,Degree,StartDate,EndDate,CreatedAt)
+    VALUES ('F0000001-0000-0000-0000-000000000001',@mTruong,N'Đại học Sư phạm Hà Nội',N'Cử nhân Sư phạm','1986-09-01','1990-06-30',@t0);
+    INSERT INTO genealogy.WorkHistories (Id,MemberId,Company,Position,StartDate,EndDate,CreatedAt)
+    VALUES ('F0000002-0000-0000-0000-000000000001',@mTruong,N'Trường THCS Thạch Thất',N'Giáo viên','1990-08-01',NULL,@t0);
+    INSERT INTO heritage.Honors (Id,MemberId,Title,Description,DateAwarded,CreatedAt)
+    VALUES ('F0000006-0000-0000-0000-000000000001',@mOng,N'Người gìn giữ gia phả',N'Bảo quản gia phả dòng họ.','1998-01-01',@t0);
 
     /* -----------------------------------------------------------------
        7. core.MemberVerifications
@@ -204,6 +230,9 @@ BEGIN TRY
         ('77777777-7777-7777-7777-000000000002', @uHung, @fam,
          N'Ảnh chụp buổi giỗ tổ năm ngoái con đã tải lên thư viện ảnh.', DATEADD(DAY, 12, @t0));
 
+    INSERT INTO community.PostMedia (Id,PostId,MediaUrl,MediaType,CreatedAt)
+    VALUES ('F0000003-0000-0000-0000-000000000001','77777777-7777-7777-7777-000000000001',N'/media/posts/gia-pha-scan.jpg',N'image',DATEADD(DAY,10,@t0));
+
     INSERT INTO community.Comments (Id, PostId, UserId, Content, CreatedAt)
     VALUES
         ('88888888-8888-8888-8888-000000000001', '77777777-7777-7777-7777-000000000001', @uMai,
@@ -215,9 +244,9 @@ BEGIN TRY
 
     INSERT INTO community.Reactions (Id, PostId, UserId, Type, CreatedAt)
     VALUES
-        ('99999999-9999-9999-9999-000000000001', '77777777-7777-7777-7777-000000000001', @uMai,  N'like',  DATEADD(DAY, 10, @t0)),
-        ('99999999-9999-9999-9999-000000000002', '77777777-7777-7777-7777-000000000001', @uHung, N'love',  DATEADD(DAY, 11, @t0)),
-        ('99999999-9999-9999-9999-000000000003', '77777777-7777-7777-7777-000000000002', @uTruong, N'like', DATEADD(DAY, 12, @t0));
+        ('99999999-9999-9999-9999-000000000001', '77777777-7777-7777-7777-000000000001', @uMai,  N'Like',  DATEADD(DAY, 10, @t0)),
+        ('99999999-9999-9999-9999-000000000002', '77777777-7777-7777-7777-000000000001', @uHung, N'Love',  DATEADD(DAY, 11, @t0)),
+        ('99999999-9999-9999-9999-000000000003', '77777777-7777-7777-7777-000000000002', @uTruong, N'Like', DATEADD(DAY, 12, @t0));
 
     /* -----------------------------------------------------------------
        11. community.Events và EventParticipants
@@ -230,14 +259,22 @@ BEGIN TRY
         ('AAAAAAAA-AAAA-AAAA-AAAA-000000000002', @fam, N'Họp mặt đầu xuân',
          CAST('2026-02-20T18:00:00' AS DATETIME2(3)), N'Nhà ông Trường, Hà Nội', @t0);
 
+    INSERT INTO community.EventReminders (Id,EventId,ReminderTime,Status,CreatedAt)
+    VALUES ('F0000004-0000-0000-0000-000000000001','AAAAAAAA-AAAA-AAAA-AAAA-000000000001','2026-03-14T07:30:00',N'sent',DATEADD(DAY,14,@t0));
+    INSERT INTO community.EventGalleries (Id,EventId,MediaUrl,UploadedBy,CreatedAt)
+    VALUES ('F0000005-0000-0000-0000-000000000001','AAAAAAAA-AAAA-AAAA-AAAA-000000000001',N'/media/events/gio-to-2026.jpg',@uHung,DATEADD(DAY,15,@t0));
+
     INSERT INTO community.EventParticipants (Id, EventId, MemberId, RsvpStatus, CreatedAt)
     VALUES
-        ('BBBBBBBB-BBBB-BBBB-BBBB-000000000001', 'AAAAAAAA-AAAA-AAAA-AAAA-000000000001', @mTruong, N'yes',   DATEADD(DAY, 15, @t0)),
-        ('BBBBBBBB-BBBB-BBBB-BBBB-000000000002', 'AAAAAAAA-AAAA-AAAA-AAAA-000000000001', @mMai,    N'yes',   DATEADD(DAY, 15, @t0)),
-        ('BBBBBBBB-BBBB-BBBB-BBBB-000000000003', 'AAAAAAAA-AAAA-AAAA-AAAA-000000000001', @mHung,   N'maybe', DATEADD(DAY, 16, @t0)),
-        ('BBBBBBBB-BBBB-BBBB-BBBB-000000000004', 'AAAAAAAA-AAAA-AAAA-AAAA-000000000001', @mLan,    N'no',    DATEADD(DAY, 16, @t0)),
-        ('BBBBBBBB-BBBB-BBBB-BBBB-000000000005', 'AAAAAAAA-AAAA-AAAA-AAAA-000000000002', @mTruong, N'yes',   DATEADD(DAY, 17, @t0)),
-        ('BBBBBBBB-BBBB-BBBB-BBBB-000000000006', 'AAAAAAAA-AAAA-AAAA-AAAA-000000000002', @mHung,   N'yes',   DATEADD(DAY, 17, @t0));
+        ('BBBBBBBB-BBBB-BBBB-BBBB-000000000001', 'AAAAAAAA-AAAA-AAAA-AAAA-000000000001', @mTruong, N'Going',   DATEADD(DAY, 15, @t0)),
+        ('BBBBBBBB-BBBB-BBBB-BBBB-000000000002', 'AAAAAAAA-AAAA-AAAA-AAAA-000000000001', @mMai,    N'Going',   DATEADD(DAY, 15, @t0)),
+        ('BBBBBBBB-BBBB-BBBB-BBBB-000000000003', 'AAAAAAAA-AAAA-AAAA-AAAA-000000000001', @mHung,   N'Maybe', DATEADD(DAY, 16, @t0)),
+        ('BBBBBBBB-BBBB-BBBB-BBBB-000000000004', 'AAAAAAAA-AAAA-AAAA-AAAA-000000000001', @mLan,    N'Declined',    DATEADD(DAY, 16, @t0)),
+        ('BBBBBBBB-BBBB-BBBB-BBBB-000000000005', 'AAAAAAAA-AAAA-AAAA-AAAA-000000000002', @mTruong, N'Going',   DATEADD(DAY, 17, @t0)),
+        ('BBBBBBBB-BBBB-BBBB-BBBB-000000000006', 'AAAAAAAA-AAAA-AAAA-AAAA-000000000002', @mHung,   N'Going',   DATEADD(DAY, 17, @t0));
+
+    INSERT INTO community.ReportedContents (Id,TargetId,TargetType,ReportedBy,Reason,Status,CreatedAt)
+    VALUES ('F0000007-0000-0000-0000-000000000001','77777777-7777-7777-7777-000000000002',N'post',@uMai,N'Báo cáo mẫu chờ kiểm duyệt.',N'pending',DATEADD(DAY,13,@t0));
 
     /* -----------------------------------------------------------------
        12. reports.AuditLog

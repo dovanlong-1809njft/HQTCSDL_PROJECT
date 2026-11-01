@@ -1,3 +1,5 @@
 # Dữ liệu mẫu
 
-`01_seed.sql` dành cho dữ liệu giả phục vụ phát triển và demo. Không đưa thông tin cá nhân thật hoặc mật khẩu dạng rõ vào file seed. Hiện file seed đang trống để nhóm bổ sung sau khi hoàn tất schema.
+01_seed.sql chứa dữ liệu giả cho các bảng trong schema hiện tại. Email dùng miền .invalid, password hash là giá trị giả và không dùng để đăng nhập. Script xóa và tạo lại các bản ghi mẫu theo GUID cố định, không đụng tới bản ghi của người dùng khác.
+
+Chạy sau toàn bộ database/schema/*.sql bằng database/init.sh hoặc theo thứ tự trong database/README.md.
