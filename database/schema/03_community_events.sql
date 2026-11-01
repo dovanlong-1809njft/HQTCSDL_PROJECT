@@ -1,3 +1,6 @@
+USE [$(DB_NAME)];
+GO
+
 -- 1. Schema
 IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = N'community')
     EXEC (N'CREATE SCHEMA community');
