@@ -143,3 +143,26 @@ GO
 
 PRINT N'06_heritage.sql: hoan tat bang heritage.Items.';
 GO
+
+-- Bảng Vinh danh thành viên xuất sắc
+IF OBJECT_ID(N'heritage.Honors', N'U') IS NULL
+BEGIN
+    CREATE TABLE [heritage].[Honors]
+    (
+        [Id] UNIQUEIDENTIFIER NOT NULL CONSTRAINT [DF_Honors_Id] DEFAULT NEWSEQUENTIALID(),
+        [MemberId] UNIQUEIDENTIFIER NOT NULL,
+        [Title] NVARCHAR(200) NOT NULL,
+        [Description] NVARCHAR(1000) NULL,
+        [DateAwarded] DATE NULL,
+        [CreatedAt] DATETIME2(0) NOT NULL CONSTRAINT [DF_Honors_CreatedAt] DEFAULT SYSUTCDATETIME(),
+        
+        CONSTRAINT [PK_Honors] PRIMARY KEY ([Id]),
+        CONSTRAINT [FK_Honors_Members] FOREIGN KEY ([MemberId]) 
+            REFERENCES [genealogy].[Members] ([Id]) ON DELETE CASCADE
+    );
+END;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE [name] = N'IX_Honors_MemberId' AND [object_id] = OBJECT_ID(N'heritage.Honors'))
+    CREATE INDEX [IX_Honors_MemberId] ON [heritage].[Honors] ([MemberId]);
+GO
