@@ -85,9 +85,26 @@ BEGIN
 END;
 GO
 
+
+GO
+
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE [name] = N'IX_Branches_FamilyId' AND [object_id] = OBJECT_ID(N'core.Branches'))
     CREATE INDEX [IX_Branches_FamilyId] ON [core].[Branches] ([FamilyId]);
 
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE [name] = N'IX_MemberVerifications_Status_CreatedAt' AND [object_id] = OBJECT_ID(N'core.MemberVerifications'))
     CREATE INDEX [IX_MemberVerifications_Status_CreatedAt] ON [core].[MemberVerifications] ([Status], [CreatedAt]);
 GO
+
+-- Bảng Cấu hình hệ thống (Key-Value)
+IF OBJECT_ID(N'core.SystemConfigs', N'U') IS NULL
+BEGIN
+    CREATE TABLE [core].[SystemConfigs]
+    (
+        [ConfigKey] VARCHAR(100) NOT NULL,
+        [ConfigValue] NVARCHAR(MAX) NOT NULL,
+        [Description] NVARCHAR(500) NULL,
+        [UpdatedAt] DATETIME2(0) NOT NULL CONSTRAINT [DF_SystemConfigs_UpdatedAt] DEFAULT SYSUTCDATETIME(),
+        
+        CONSTRAINT [PK_SystemConfigs] PRIMARY KEY ([ConfigKey])
+    );
+END;
