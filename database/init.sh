@@ -30,4 +30,7 @@ run_scripts() {
 }
 
 run_scripts "$SCRIPT_DIR/schema"
+run_scripts "$SCRIPT_DIR/views"
+run_scripts "$SCRIPT_DIR/procedures"
+run_scripts "$SCRIPT_DIR/triggers"
 run_scripts "$SCRIPT_DIR/seed"

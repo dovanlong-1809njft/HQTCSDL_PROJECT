@@ -1,0 +1,107 @@
+name: familyconnect
+
+services:
+  db:
+    image: mcr.microsoft.com/mssql/server:2025-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: Developer
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:-FamilyConnect_2025!}
+    ports:
+      - "${MSSQL_PORT:-1433}:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+
+  # Chay 1 lan: cho SQL Server san sang roi chay database/schema/*.sql va database/seed/*.sql.
+  # Cac script deu chay lai nhieu lan duoc nen moi lan `up` se tu dong dong bo lai.
+  db-init:
+    build:
+      context: ../..
+      dockerfile: infra/docker/Dockerfile
+      target: db-init
+    depends_on:
+      - db
+    restart: "no"
+    environment:
+      MSSQL_HOST: db
+      MSSQL_PORT: 1433
+      MSSQL_USER: sa
+      MSSQL_DB: ${MSSQL_DB:-FamilyConnect}
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:-FamilyConnect_2025!}
+    volumes:
+      - ../../database:/database:ro
+    command:
+      - bash
+      - -c
+      - |
+        set -e
+        cp -r /database /tmp/database
+        sed -i 's/\r$$//' /tmp/database/init.sh
+        for i in $$(seq 1 60); do
+          sqlcmd -S "$$MSSQL_HOST,$$MSSQL_PORT" -U "$$MSSQL_USER" -P "$$MSSQL_SA_PASSWORD" -C -Q "SELECT 1" >/dev/null 2>&1 && break
+          echo "Dang cho SQL Server khoi dong ($$i/60)..."
+          sleep 2
+        done
+        bash /tmp/database/init.sh
+        echo "Khoi tao database xong."
+
+  backend:
+    build:
+      context: ../..
+      dockerfile: infra/docker/Dockerfile
+      target: backend
+    # Hot reload: sua code trong apps/backend/app la API tu nap lai.
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    environment:
+      MSSQL_HOST: db
+      MSSQL_PORT: 1433
+      MSSQL_DB: ${MSSQL_DB:-FamilyConnect}
+      MSSQL_USER: ${MSSQL_USER:-sa}
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:-FamilyConnect_2025!}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-dev-familyconnect-secret-change-before-deployment-32-chars-min}
+      WATCHFILES_FORCE_POLLING: "true"
+    volumes:
+      - ../../apps/backend/app:/app/app
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
+
+  # Ban build san (nginx) - gan giong luc trien khai.
+  web:
+    build:
+      context: ../..
+      dockerfile: infra/docker/Dockerfile
+      target: web
+    ports:
+      - "${WEB_PORT:-3000}:80"
+    depends_on:
+      - backend
+
+  # Ban dev co hot reload (Vite). Chi chay khi them `--profile dev`.
+  web-dev:
+    profiles: ["dev"]
+    build:
+      context: ../..
+      dockerfile: infra/docker/Dockerfile
+      target: web-dev
+    environment:
+      VITE_PROXY_TARGET: http://backend:8000
+      CHOKIDAR_USEPOLLING: "true"
+    volumes:
+      - ../../apps/web:/app
+      - /app/node_modules
+    ports:
+      - "${WEB_DEV_PORT:-5173}:5173"
+    depends_on:
+      - backend
+
+volumes:
+  sqlserver_data:

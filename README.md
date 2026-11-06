@@ -21,22 +21,31 @@ FamilyConnect là đề tài môn **Hệ quản trị cơ sở dữ liệu**, h�
 ## Cấu trúc dự án
 
 ```text
-backend/                 # API FastAPI và các module nghiệp vụ
-frontend/                # Ứng dụng web React viết bằng JavaScript
+apps/
+  backend/               # API FastAPI tổ chức theo DDD (core, domains, shared)
+  worker/                # Tác vụ chạy ngầm (APScheduler/Celery)
+  web/                   # Ứng dụng web React (feature-based: auth, dashboard, ...)
+  mobile/                # Khung dự án ứng dụng di động
+packages/
+  api-contract/          # Hợp đồng API / OpenAPI dùng chung
+  mock-data/             # Dữ liệu JSON giả lập dùng chung
 database/
-  schema/                # Các script tạo schema và bảng; hiện đang trống
-  seed/                  # Script dữ liệu mẫu; hiện đang trống
+  schema/                # Các script tạo schema và bảng (00..06)
+  views/                 # Các script tạo View
+  procedures/            # Các script Stored Procedure
+  seed/                  # Script dữ liệu mẫu
   shared/                # Script chỉ chạy trên DB chung (phân quyền theo schema)
+  perf/                  # Phân tích Execution Plan và tối ưu truy vấn
   init.sh                # Chạy các file SQL theo thứ tự tên
+infra/
+  docker/                # Dockerfile (đa target), nginx.conf, docker-compose.yml
 docs/
   requirements/          # Yêu cầu, vai trò và use case
   architecture/          # Kiến trúc hệ thống
   erd/                   # ERD thiết kế
   api-spec/              # Đặc tả API
-tests/                   # Kế hoạch và vị trí dành cho kiểm thử
-docker-compose.yml       # Khai báo SQL Server, backend và frontend
+tests/                   # Kiểm thử e2e, api, database và performance
 ```
-
 Chi tiết yêu cầu nằm trong [docs/requirements/README.md](docs/requirements/README.md). Tài liệu này đang ở trạng thái dự thảo để nhóm rà soát.
 
 ## Yêu cầu cài đặt
@@ -47,14 +56,14 @@ Chi tiết yêu cầu nằm trong [docs/requirements/README.md](docs/requirement
 - **ODBC Driver 18 for SQL Server** nếu chạy backend trực tiếp trên Windows. Thiếu driver này, backend báo lỗi không tìm thấy driver khi kết nối database.
 - `bash` (Git Bash hoặc WSL) và `sqlcmd` để chạy `database/init.sh` sau khi nhóm hoàn thành các script SQL.
 
-Không commit `.env`, `frontend/.env.local` hoặc mật khẩu thật lên Git. Dùng `.env.example` làm mẫu cấu hình.
+Không commit `.env`, `apps/web/.env.local` hoặc mật khẩu thật lên Git. Dùng `.env.example` làm mẫu cấu hình.
 
 ## Chạy frontend
 
 Từ thư mục gốc dự án, chạy:
 
 ```powershell
-cd frontend
+cd apps/web
 npm install
 npm run dev
 ```
@@ -63,37 +72,46 @@ Mở địa chỉ Vite hiển thị trong terminal, thường là `http://localh
 
 ## Chạy bằng Docker Compose
 
-1. Tạo file cấu hình cục bộ:
+Chạy từ thư mục gốc dự án (PowerShell):
 
-   ```powershell
-   Copy-Item .env.example .env
-   ```
+```powershell
+Copy-Item .env.example .env
+docker compose --env-file .env -f infra/docker/docker-compose.yml up --build
+```
 
-2. Cập nhật mật khẩu SQL Server và `JWT_SECRET_KEY` trong `.env`. Mật khẩu SQL Server cần đủ mạnh (từ 8 ký tự, có chữ hoa, chữ thường, số và ký tự đặc biệt), nếu không container database sẽ không khởi động.
-3. Từ thư mục gốc, chạy:
+Một lệnh trên sẽ tự động: khởi động SQL Server → chạy `database/schema/*.sql` và `database/seed/*.sql` (service `db-init`) → khởi động backend → khởi động web. Mật khẩu SQL Server cần đủ mạnh (từ 8 ký tự, có chữ hoa, chữ thường, số và ký tự đặc biệt), nếu không container `db` sẽ không khởi động.
 
-   ```powershell
-   docker compose up --build
-   ```
+| Dịch vụ             | Địa chỉ                      | Ghi chú                                      |
+| ------------------- | ---------------------------- | -------------------------------------------- |
+| Web (nginx, build)  | `http://localhost:3000`      | Bản build sẵn, cần `--build` lại khi sửa web |
+| Web dev (Vite)      | `http://localhost:5173`      | Chỉ chạy khi thêm `--profile dev`, có hot reload |
+| API                 | `http://localhost:8000`      | Tự nạp lại khi sửa code trong `apps/backend/app` |
+| Swagger             | `http://localhost:8000/docs` |                                              |
+| SQL Server          | `localhost,1433`             | Tài khoản `sa`, mật khẩu lấy từ `.env`       |
 
-Các địa chỉ mặc định:
+Các lệnh thường dùng (thêm tiền tố `docker compose --env-file .env -f infra/docker/docker-compose.yml`):
 
-| Dịch vụ    | Địa chỉ                      |
-| ---------- | ---------------------------- |
-| Web        | `http://localhost:3000`      |
-| API        | `http://localhost:8000`      |
-| Swagger    | `http://localhost:8000/docs` |
-| SQL Server | `localhost,1433`             |
+| Mục đích                           | Lệnh                                         |
+| ---------------------------------- | -------------------------------------------- |
+| Chạy kèm web dev có hot reload     | `--profile dev up --build`                   |
+| Chạy nền                           | `up -d`                                      |
+| Xem log một dịch vụ                | `logs -f backend` (hoặc `db-init`, `db`)     |
+| Chạy lại script SQL sau khi sửa    | `up db-init`                                 |
+| Dừng                               | `down`                                       |
+| Xóa sạch database, làm lại từ đầu  | `down -v` rồi `up --build`                   |
 
-Docker Compose khởi động các dịch vụ nhưng **không tự chạy script khởi tạo database**. Các file SQL hiện đang trống; sau khi nhóm hoàn thành chúng, cần chạy `database/init.sh` để tạo schema, bảng và dữ liệu mẫu. Muốn làm lại database từ đầu: `docker compose down -v`, chạy lại Compose rồi chạy lại `init.sh`.
+Lưu ý:
 
+- Script SQL được mount từ `database/` nên sửa file xong chỉ cần `up db-init`, không cần build lại.
+- Đổi `MSSQL_SA_PASSWORD` sau lần chạy đầu không có tác dụng với database đã tạo; cần `down -v` để tạo lại.
+- Kết nối SSMS/Azure Data Studio: server `localhost,1433`, user `sa`, bật **Trust server certificate**.
 ## Chạy backend trực tiếp
 
 Backend cần SQL Server đang chạy. Trong PowerShell, từ thư mục gốc:
 
 ```powershell
-docker compose up -d db
-cd backend
+docker compose --env-file .env -f infra/docker/docker-compose.yml up -d db
+cd apps/backend
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
@@ -144,7 +162,7 @@ bash database/init.sh
 
 ## Làm việc nhóm trên database
 
-Mỗi thành viên làm trên nhánh Git riêng (ví dụ `db/genealogy`), chỉ sửa file được giao, sau đó mở Pull Request để nhóm review trước khi merge vào `main`. Trước khi mở Pull Request, dựng lại từ database trống (`docker compose down -v` rồi chạy lại) và đảm bảo không có lỗi.
+Mỗi thành viên làm trên nhánh Git riêng (ví dụ `db/genealogy`), chỉ sửa file được giao, sau đó mở Pull Request để nhóm review trước khi merge vào `main`. Trước khi mở Pull Request, dựng lại từ database trống (`docker compose --env-file .env -f infra/docker/docker-compose.yml down -v` rồi chạy lại) và đảm bảo không có lỗi.
 
 **DB chung qua ZeroTier** dùng để kiểm tra tích hợp giữa các phần, không dùng làm bản demo:
 

@@ -1,0 +1,1 @@
+# Pydantic request/response DTO cho domain heritage
