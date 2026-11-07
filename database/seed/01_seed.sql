@@ -1,4 +1,4 @@
-﻿/* =====================================================================
+/* =====================================================================
    database/seed/01_seed.sql
    Người 4 — Dữ liệu mẫu cho toàn bộ 14 bảng
    =====================================================================
@@ -109,6 +109,8 @@ BEGIN TRY
     DELETE FROM genealogy.Marriages       WHERE CAST(Id AS CHAR(36)) LIKE '66666666-%';
     DELETE FROM genealogy.ParentChild     WHERE CAST(Id AS CHAR(36)) LIKE '55555555-%';
     DELETE FROM core.MemberVerifications  WHERE CAST(Id AS CHAR(36)) LIKE 'DDDDDDDD-%';
+    DELETE FROM genealogy.Educations      WHERE CAST(Id AS CHAR(36)) LIKE '45555555-%';
+    DELETE FROM genealogy.WorkHistories   WHERE CAST(Id AS CHAR(36)) LIKE '46666666-%';
     DELETE FROM genealogy.Members         WHERE CAST(Id AS CHAR(36)) LIKE '44444444-%';
     DELETE FROM core.Branches             WHERE CAST(Id AS CHAR(36)) LIKE '33333333-%';
     DELETE FROM core.Families             WHERE CAST(Id AS CHAR(36)) LIKE '22222222-%';
@@ -144,14 +146,29 @@ BEGIN TRY
        ----------------------------------------------------------------- */
 
     INSERT INTO genealogy.Members
-        (Id, FamilyId, BranchId, UserId, FullName, BirthDate, Occupation, Location, CreatedAt)
+        (Id, FamilyId, BranchId, UserId, FullName, BirthDate, Location, CreatedAt)
     VALUES
-        (@mOng,    @fam, @brTruong, NULL,     N'Nguyễn Văn Cẩn',  '1938-03-12', N'Thợ mộc',       N'Hà Nội',           @t0),
-        (@mBa,     @fam, @brTruong, NULL,     N'Lê Thị Tâm',      '1942-07-30', N'Nội trợ',       N'Hà Nội',           @t0),
-        (@mTruong, @fam, @brTruong, @uTruong, N'Nguyễn Văn Trường','1968-11-02', N'Giáo viên',     N'Hà Nội',           @t0),
-        (@mMai,    @fam, @brTruong, @uMai,    N'Trần Thị Mai',    '1971-05-18', N'Kế toán',       N'Hà Nội',           @t0),
-        (@mHung,   @fam, @brThu,    @uHung,   N'Nguyễn Văn Hùng', '1995-09-24', N'Kỹ sư phần mềm', N'TP. Hồ Chí Minh', @t0),
-        (@mLan,    @fam, @brThu,    @uLan,    N'Nguyễn Thị Lan',  '1999-02-14', N'Sinh viên',     N'Đà Nẵng',          @t0);
+        (@mOng,    @fam, @brTruong, NULL,     N'Nguyễn Văn Cẩn',   '1938-03-12', N'Hà Nội',          @t0),
+        (@mBa,     @fam, @brTruong, NULL,     N'Lê Thị Tâm',       '1942-07-30', N'Hà Nội',          @t0),
+        (@mTruong, @fam, @brTruong, @uTruong, N'Nguyễn Văn Trường','1968-11-02', N'Hà Nội',          @t0),
+        (@mMai,    @fam, @brTruong, @uMai,    N'Trần Thị Mai',     '1971-05-18', N'Hà Nội',          @t0),
+        (@mHung,   @fam, @brThu,    @uHung,   N'Nguyễn Văn Hùng',  '1995-09-24', N'TP. Hồ Chí Minh', @t0),
+        (@mLan,    @fam, @brThu,    @uLan,    N'Nguyễn Thị Lan',   '1999-02-14', N'Đà Nẵng',         @t0);
+
+    INSERT INTO genealogy.Educations
+        (Id, MemberId, Institution, Degree, StartDate, EndDate, CreatedAt)
+    VALUES
+        ('45555555-5555-5555-5555-000000000001', @mTruong, N'Đại học Sư phạm Hà Nội',   N'Cử nhân Sư phạm',           '1986-09-01', '1990-06-30', @t0),
+        ('45555555-5555-5555-5555-000000000002', @mHung,   N'Đại học Bách Khoa TP.HCM', N'Kỹ sư Công nghệ thông tin', '2013-09-01', '2018-06-30', @t0),
+        ('45555555-5555-5555-5555-000000000003', @mLan,    N'Đại học Kinh tế Đà Nẵng',  N'Sinh viên Cử nhân',         '2017-09-01', NULL,         @t0);
+
+    INSERT INTO genealogy.WorkHistories
+        (Id, MemberId, Company, Position, StartDate, EndDate, CreatedAt)
+    VALUES
+        ('46666666-6666-6666-6666-000000000001', @mOng,    N'Xưởng mộc Thạch Thất',      N'Thợ mộc cả',       '1960-01-01', '2005-12-31', @t0),
+        ('46666666-6666-6666-6666-000000000002', @mTruong, N'Trường THPT Thạch Thất',    N'Giáo viên Toán',   '1991-09-01', NULL,         @t0),
+        ('46666666-6666-6666-6666-000000000003', @mMai,    N'Công ty Thương mại Hà Tây', N'Kế toán tổng hợp', '1995-03-01', NULL,         @t0),
+        ('46666666-6666-6666-6666-000000000004', @mHung,   N'Công ty Phần mềm FPT',      N'Kỹ sư phần mềm',   '2018-08-01', NULL,         @t0);
 
     /* -----------------------------------------------------------------
        7. core.MemberVerifications
@@ -215,9 +232,9 @@ BEGIN TRY
 
     INSERT INTO community.Reactions (Id, PostId, UserId, Type, CreatedAt)
     VALUES
-        ('99999999-9999-9999-9999-000000000001', '77777777-7777-7777-7777-000000000001', @uMai,  N'like',  DATEADD(DAY, 10, @t0)),
-        ('99999999-9999-9999-9999-000000000002', '77777777-7777-7777-7777-000000000001', @uHung, N'love',  DATEADD(DAY, 11, @t0)),
-        ('99999999-9999-9999-9999-000000000003', '77777777-7777-7777-7777-000000000002', @uTruong, N'like', DATEADD(DAY, 12, @t0));
+        ('99999999-9999-9999-9999-000000000001', '77777777-7777-7777-7777-000000000001', @uMai,  N'Like',  DATEADD(DAY, 10, @t0)),
+        ('99999999-9999-9999-9999-000000000002', '77777777-7777-7777-7777-000000000001', @uHung, N'Love',  DATEADD(DAY, 11, @t0)),
+        ('99999999-9999-9999-9999-000000000003', '77777777-7777-7777-7777-000000000002', @uTruong, N'Like', DATEADD(DAY, 12, @t0));
 
     /* -----------------------------------------------------------------
        11. community.Events và EventParticipants
@@ -232,12 +249,12 @@ BEGIN TRY
 
     INSERT INTO community.EventParticipants (Id, EventId, MemberId, RsvpStatus, CreatedAt)
     VALUES
-        ('BBBBBBBB-BBBB-BBBB-BBBB-000000000001', 'AAAAAAAA-AAAA-AAAA-AAAA-000000000001', @mTruong, N'yes',   DATEADD(DAY, 15, @t0)),
-        ('BBBBBBBB-BBBB-BBBB-BBBB-000000000002', 'AAAAAAAA-AAAA-AAAA-AAAA-000000000001', @mMai,    N'yes',   DATEADD(DAY, 15, @t0)),
-        ('BBBBBBBB-BBBB-BBBB-BBBB-000000000003', 'AAAAAAAA-AAAA-AAAA-AAAA-000000000001', @mHung,   N'maybe', DATEADD(DAY, 16, @t0)),
-        ('BBBBBBBB-BBBB-BBBB-BBBB-000000000004', 'AAAAAAAA-AAAA-AAAA-AAAA-000000000001', @mLan,    N'no',    DATEADD(DAY, 16, @t0)),
-        ('BBBBBBBB-BBBB-BBBB-BBBB-000000000005', 'AAAAAAAA-AAAA-AAAA-AAAA-000000000002', @mTruong, N'yes',   DATEADD(DAY, 17, @t0)),
-        ('BBBBBBBB-BBBB-BBBB-BBBB-000000000006', 'AAAAAAAA-AAAA-AAAA-AAAA-000000000002', @mHung,   N'yes',   DATEADD(DAY, 17, @t0));
+        ('BBBBBBBB-BBBB-BBBB-BBBB-000000000001', 'AAAAAAAA-AAAA-AAAA-AAAA-000000000001', @mTruong, N'Going',   DATEADD(DAY, 15, @t0)),
+        ('BBBBBBBB-BBBB-BBBB-BBBB-000000000002', 'AAAAAAAA-AAAA-AAAA-AAAA-000000000001', @mMai,    N'Going',   DATEADD(DAY, 15, @t0)),
+        ('BBBBBBBB-BBBB-BBBB-BBBB-000000000003', 'AAAAAAAA-AAAA-AAAA-AAAA-000000000001', @mHung,   N'Maybe', DATEADD(DAY, 16, @t0)),
+        ('BBBBBBBB-BBBB-BBBB-BBBB-000000000004', 'AAAAAAAA-AAAA-AAAA-AAAA-000000000001', @mLan,    N'Declined',    DATEADD(DAY, 16, @t0)),
+        ('BBBBBBBB-BBBB-BBBB-BBBB-000000000005', 'AAAAAAAA-AAAA-AAAA-AAAA-000000000002', @mTruong, N'Going',   DATEADD(DAY, 17, @t0)),
+        ('BBBBBBBB-BBBB-BBBB-BBBB-000000000006', 'AAAAAAAA-AAAA-AAAA-AAAA-000000000002', @mHung,   N'Going',   DATEADD(DAY, 17, @t0));
 
     /* -----------------------------------------------------------------
        12. reports.AuditLog
@@ -334,6 +351,8 @@ UNION ALL SELECT N'core.Families',                 COUNT(*) FROM core.Families  
 UNION ALL SELECT N'core.Branches',                 COUNT(*) FROM core.Branches                      WHERE CAST(Id AS CHAR(36)) LIKE '33333333-%'
 UNION ALL SELECT N'core.MemberVerifications',      COUNT(*) FROM core.MemberVerifications           WHERE CAST(Id AS CHAR(36)) LIKE 'DDDDDDDD-%'
 UNION ALL SELECT N'genealogy.Members',             COUNT(*) FROM genealogy.Members                  WHERE CAST(Id AS CHAR(36)) LIKE '44444444-%'
+UNION ALL SELECT N'genealogy.Educations',          COUNT(*) FROM genealogy.Educations               WHERE CAST(Id AS CHAR(36)) LIKE '45555555-%'
+UNION ALL SELECT N'genealogy.WorkHistories',       COUNT(*) FROM genealogy.WorkHistories            WHERE CAST(Id AS CHAR(36)) LIKE '46666666-%'
 UNION ALL SELECT N'genealogy.ParentChild',         COUNT(*) FROM genealogy.ParentChild              WHERE CAST(Id AS CHAR(36)) LIKE '55555555-%'
 UNION ALL SELECT N'genealogy.Marriages',           COUNT(*) FROM genealogy.Marriages                WHERE CAST(Id AS CHAR(36)) LIKE '66666666-%'
 UNION ALL SELECT N'community.Posts',               COUNT(*) FROM community.Posts                    WHERE CAST(Id AS CHAR(36)) LIKE '77777777-%'

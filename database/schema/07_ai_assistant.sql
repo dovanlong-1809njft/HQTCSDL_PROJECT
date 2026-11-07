@@ -16,7 +16,12 @@ IF OBJECT_ID(N'core.Families', N'U') IS NULL OR OBJECT_ID(N'core.Users', N'U') I
 GO
 
 
--- 2. Bảng heritage.KnowledgeChunks
+/* ---------------------------------------------------------------------
+   2. Bảng heritage.KnowledgeChunks
+   Lưu các đoạn văn bản đã cắt nhỏ (Chunk) từ Bài viết (community.Posts),
+   Di sản (heritage.Items) hoặc Hồ sơ thành viên (genealogy.Members),
+   kèm bản tóm tắt (SummaryText) và dãy số Vector dạng JSON.
+   --------------------------------------------------------------------- */
 IF OBJECT_ID(N'heritage.KnowledgeChunks', N'U') IS NULL
 BEGIN
     CREATE TABLE [heritage].[KnowledgeChunks]
@@ -24,11 +29,12 @@ BEGIN
         [Id]            UNIQUEIDENTIFIER NOT NULL
             CONSTRAINT [DF_KnowledgeChunks_Id] DEFAULT NEWSEQUENTIALID(),
         [FamilyId]      UNIQUEIDENTIFIER NOT NULL,
-        [SourceType]    NVARCHAR(20)     NOT NULL, -- 'post' hoặc 'heritage'
+        [SourceType]    NVARCHAR(20)     NOT NULL, -- 'post', 'heritage', 'member'
         [SourceId]      UNIQUEIDENTIFIER NOT NULL, -- Id của bản ghi gốc
         [ChunkIndex]    INT              NOT NULL
             CONSTRAINT [DF_KnowledgeChunks_ChunkIndex] DEFAULT (0),
         [ChunkText]     NVARCHAR(2000)   NOT NULL,
+        [SummaryText]   NVARCHAR(1000)   NULL,     -- Phục vụ AI content summarization
         [EmbeddingJson] NVARCHAR(MAX)    NULL,     -- Chuỗi JSON mảng số thực "[0.12, -0.34, ...]"
         [SyncStatus]    NVARCHAR(20)     NOT NULL
             CONSTRAINT [DF_KnowledgeChunks_SyncStatus] DEFAULT N'pending',
@@ -44,7 +50,7 @@ BEGIN
             UNIQUE ([SourceType], [SourceId], [ChunkIndex]),
 
         CONSTRAINT [CK_KnowledgeChunks_SourceType]
-            CHECK ([SourceType] IN (N'post', N'heritage')),
+            CHECK ([SourceType] IN (N'post', N'heritage', N'member')),
         CONSTRAINT [CK_KnowledgeChunks_ChunkIndex]
             CHECK ([ChunkIndex] >= 0),
         CONSTRAINT [CK_KnowledgeChunks_ChunkText]
@@ -60,6 +66,21 @@ BEGIN
                 OR ([SyncStatus] IN (N'pending', N'failed'))
             )
     );
+END;
+GO
+
+/* Bổ sung tương thích nếu bảng đã được tạo từ phiên bản trước */
+IF COL_LENGTH(N'heritage.KnowledgeChunks', N'SummaryText') IS NULL
+BEGIN
+    ALTER TABLE [heritage].[KnowledgeChunks]
+        ADD [SummaryText] NVARCHAR(1000) NULL;
+
+    IF OBJECT_ID(N'heritage.CK_KnowledgeChunks_SourceType', N'C') IS NOT NULL
+        ALTER TABLE [heritage].[KnowledgeChunks] DROP CONSTRAINT [CK_KnowledgeChunks_SourceType];
+
+    ALTER TABLE [heritage].[KnowledgeChunks]
+        ADD CONSTRAINT [CK_KnowledgeChunks_SourceType]
+            CHECK ([SourceType] IN (N'post', N'heritage', N'member'));
 END;
 GO
 
@@ -82,7 +103,11 @@ IF NOT EXISTS (
 GO
 
 
--- 3. Bảng reports.AiChatMessages
+/* ---------------------------------------------------------------------
+   3. Bảng reports.AiChatMessages
+   Lưu lịch sử câu hỏi của thành viên và câu trả lời của Trợ lý ảo AI,
+   kèm danh sách nguồn trích dẫn (ReferencedSourceIds dạng JSON).
+   --------------------------------------------------------------------- */
 IF OBJECT_ID(N'reports.AiChatMessages', N'U') IS NULL
 BEGIN
     CREATE TABLE [reports].[AiChatMessages]
@@ -106,7 +131,7 @@ BEGIN
             FOREIGN KEY ([UserId]) REFERENCES [core].[Users] ([UserId]),
 
         CONSTRAINT [CK_AiChatMessages_QueryType]
-            CHECK ([QueryType] IN (N'semantic_search', N'kinship_explain', N'general')),
+            CHECK ([QueryType] IN (N'semantic_search', N'kinship_explain', N'summarization', N'recommendation', N'general')),
         CONSTRAINT [CK_AiChatMessages_Question]
             CHECK (LEN(LTRIM(RTRIM([Question]))) > 0),
         CONSTRAINT [CK_AiChatMessages_Answer]
@@ -114,6 +139,21 @@ BEGIN
         CONSTRAINT [CK_AiChatMessages_RefsIsJson]
             CHECK ([ReferencedSourceIds] IS NULL OR ISJSON([ReferencedSourceIds]) = 1)
     );
+END
+ELSE
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM sys.check_constraints
+        WHERE [name] = N'CK_AiChatMessages_QueryType'
+          AND [parent_object_id] = OBJECT_ID(N'reports.AiChatMessages')
+          AND [definition] NOT LIKE N'%summarization%'
+    )
+    BEGIN
+        ALTER TABLE [reports].[AiChatMessages] DROP CONSTRAINT [CK_AiChatMessages_QueryType];
+        ALTER TABLE [reports].[AiChatMessages]
+            ADD CONSTRAINT [CK_AiChatMessages_QueryType]
+                CHECK ([QueryType] IN (N'semantic_search', N'kinship_explain', N'summarization', N'recommendation', N'general'));
+    END;
 END;
 GO
 
@@ -135,5 +175,5 @@ IF NOT EXISTS (
         ON [reports].[AiChatMessages] ([FamilyId], [CreatedAt] DESC);
 GO
 
-PRINT N'07_ai_assistant.sql: Hoàn tất tạo bảng heritage.KnowledgeChunks và reports.AiChatMessages.';
+PRINT N'07_ai_assistant.sql: Hoàn tất tạo/cập nhật bảng heritage.KnowledgeChunks và reports.AiChatMessages.';
 GO
