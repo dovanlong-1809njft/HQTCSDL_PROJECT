@@ -1,11 +1,9 @@
 # Đặc tả API
 
-FastAPI tự tạo tài liệu OpenAPI. Khi backend đang chạy, có thể xem giao diện Swagger tại `http://localhost:8000/docs` hoặc xem nội dung JSON tại `http://localhost:8000/openapi.json`.
+FastAPI tạo OpenAPI tại http://localhost:8000/docs.
 
-Hiện API xác thực gồm:
+Đã triển khai: GET /health, POST /api/auth/register, POST /api/auth/login và GET /api/auth/me (Bearer JWT).
 
-- `POST /api/auth/register`: tạo tài khoản và trả JWT.
-- `POST /api/auth/login`: đăng nhập và trả JWT.
-- `GET /api/auth/me`: đọc hồ sơ tài khoản hiện tại, cần header `Authorization: Bearer <access_token>`.
+ERD có 22 bảng. Danh bạ dùng Educations và WorkHistories; cộng đồng có PostMedia và ReportedContents; sự kiện có EventReminders và EventGalleries; di sản có Honors; cấu hình có SystemConfigs. SQL đã có các bảng này, nhưng API CRUD tương ứng chưa triển khai.
 
-Hiện nhóm mới triển khai các API xác thực. Những API gia phả, cộng đồng, sự kiện và di sản sẽ được bổ sung khi các module tương ứng hoàn thành. ERD là thiết kế tham khảo; các file T-SQL trong `database/schema/` đang chờ nhóm bổ sung.
+API mới phải kiểm tra JWT và quyền theo gia đình/chi nhánh. Members không còn Occupation. ReportedContents.TargetId là quan hệ đa hình cần xác thực theo TargetType. SystemConfigs không lưu bí mật.

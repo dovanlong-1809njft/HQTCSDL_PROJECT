@@ -6,7 +6,7 @@
 
 FamilyConnect giúp các thành viên trong gia đình lưu trữ thông tin gia phả, trao đổi với nhau, tổ chức sự kiện và gìn giữ tài liệu, câu chuyện, hình ảnh gia đình. Nhóm ưu tiên xây dựng giao diện web trước; ứng dụng di động và AI sẽ được triển khai ở các gói công việc tiếp theo.
 
-Tài liệu này mô tả nhu cầu nghiệp vụ. Đây chưa phải xác nhận rằng các chức năng đã được lập trình. Các file SQL hiện đang để trống; nhóm cần dùng yêu cầu đã thống nhất để rà lại [ERD](../erd/README.md) trước khi viết schema.
+Tài liệu này mô tả nhu cầu nghiệp vụ. Đây chưa phải xác nhận rằng các chức năng đã được lập trình. Các script T-SQL hiện mô tả 22 bảng trong 5 schema; xem [ERD](../erd/README.md). Có bảng chưa đồng nghĩa API và giao diện đã hoàn thành.
 
 ## 2. Phạm vi
 
@@ -17,7 +17,7 @@ Tài liệu này mô tả nhu cầu nghiệp vụ. Đây chưa phải xác nhậ
 - Đăng bài, bình luận, bày tỏ cảm xúc (reaction) và nhận thông báo trong cộng đồng gia đình.
 - Tạo sự kiện, RSVP, xem người tham gia và lưu ảnh sự kiện.
 - Lưu tài liệu lịch sử, câu chuyện và ảnh gia đình.
-- Tìm thành viên theo tên, nghề nghiệp, nơi ở và thế hệ.
+- Tìm thành viên theo tên, nơi ở, chi nhánh, thế hệ, cơ sở đào tạo, bằng cấp, công ty và chức danh.
 - Xem thống kê hoạt động và quản trị nội dung, tài khoản, nhật ký.
 - Định hướng tích hợp trợ lý AI, tìm kiếm ngữ nghĩa và giải thích quan hệ.
 
@@ -57,27 +57,27 @@ Người dùng chỉ được xem hoặc sửa dữ liệu thuộc phạm vi gia
 ### UC-03: Quản lý gia phả
 
 - **Tác nhân:** `family_head`, admin.
-- **Luồng chính:** Tạo hoặc cập nhật hồ sơ thành viên; khai báo gia đình, chi nhánh, ngày sinh, nghề nghiệp và nơi ở; thêm quan hệ cha mẹ-con hoặc hôn nhân.
+- **Luồng chính:** Tạo hoặc cập nhật hồ sơ thành viên; khai báo gia đình, chi nhánh, ngày sinh và nơi ở; hồ sơ nghề nghiệp/học vấn lưu riêng; thêm quan hệ cha mẹ-con hoặc hôn nhân.
 - **Kết quả:** Thành viên có thể tìm kiếm và xem theo thế hệ.
 - **Quy tắc:** Không tạo quan hệ cha mẹ-con tự thân; không lưu trùng cùng một quan hệ; cặp hôn nhân chỉ được lưu một lần.
 
 ### UC-04: Tìm và xem danh bạ
 
 - **Tác nhân:** Thành viên đã đăng nhập.
-- **Luồng chính:** Tìm theo tên hoặc lọc theo nghề nghiệp, nơi ở, chi nhánh và thế hệ.
+- **Luồng chính:** Tìm theo tên, nơi ở, chi nhánh, thế hệ, cơ sở đào tạo/bằng cấp hoặc công ty/chức danh.
 - **Kết quả:** Danh sách chỉ hiển thị hồ sơ mà người dùng có quyền xem.
 
 ### UC-05: Chia sẻ bài viết trong cộng đồng
 
 - **Tác nhân:** `member`, `family_head`.
-- **Luồng chính:** Thành viên đăng nội dung; những người khác có thể bình luận hoặc bày tỏ cảm xúc. Chủ bài viết có thể chỉnh sửa hoặc xóa bài theo chính sách nhóm thống nhất.
+- **Luồng chính:** Thành viên đăng nội dung; những người khác có thể bình luận hoặc bày tỏ cảm xúc. Bài viết có thể đính kèm media; thành viên có thể báo cáo nội dung để admin kiểm duyệt.
 - **Kết quả:** Bài viết hiển thị trong phạm vi gia đình được chọn; thao tác kiểm duyệt được ghi nhận khi cần.
 
 ### UC-06: Tạo sự kiện và RSVP
 
 - **Tác nhân:** `family_head`, admin; thành viên tham gia.
 - **Luồng chính:** Người có quyền tạo sự kiện với tiêu đề, thời gian, địa điểm; thành viên phản hồi tham dự, từ chối hoặc chưa chắc chắn.
-- **Kết quả:** Ban tổ chức xem được danh sách và trạng thái RSVP; ảnh sự kiện được lưu trong thư viện liên quan.
+- **Kết quả:** Ban tổ chức xem được danh sách và trạng thái RSVP; ảnh lưu trong EventGalleries và lịch nhắc theo dõi trong EventReminders.
 
 ### UC-07: Lưu giữ di sản gia đình
 
@@ -116,12 +116,12 @@ Người dùng chỉ được xem hoặc sửa dữ liệu thuộc phạm vi gia
 - **FR-01:** Hệ thống đăng ký, đăng nhập, đăng xuất và cấp JWT; mật khẩu phải được băm trước khi lưu.
 - **FR-02:** Hệ thống hỗ trợ hồ sơ người dùng và yêu cầu xác minh tài khoản với thành viên gia phả.
 - **FR-03:** Người có quyền quản lý được tạo/sửa gia đình, chi nhánh, hồ sơ thành viên, quan hệ cha mẹ-con và hôn nhân.
-- **FR-04:** Thành viên được tìm kiếm và lọc danh bạ theo các trường đã thống nhất.
-- **FR-05:** Cộng đồng hỗ trợ bài viết, bình luận, reaction và thông báo.
-- **FR-06:** Sự kiện hỗ trợ tạo, sửa, RSVP, xem người tham gia và quản lý ảnh.
-- **FR-07:** Di sản hỗ trợ tài liệu, câu chuyện và ảnh, kèm người đóng góp và thời điểm.
+- **FR-04:** Thành viên được lọc danh bạ theo học vấn (Educations) và nghề nghiệp (WorkHistories).
+- **FR-05:** Cộng đồng hỗ trợ bài viết, media, bình luận, reaction và báo cáo nội dung.
+- **FR-06:** Sự kiện hỗ trợ tạo, RSVP, danh sách tham gia, lịch nhắc và gallery ảnh.
+- **FR-07:** Di sản hỗ trợ tài liệu, câu chuyện, ảnh và vinh danh thành viên.
 - **FR-08:** Dashboard hiển thị số liệu theo phạm vi gia đình hoặc quyền quản trị.
-- **FR-09:** Admin có chức năng quản lý tài khoản, kiểm duyệt nội dung và xem audit log.
+- **FR-09:** Admin quản lý tài khoản, xử lý báo cáo nội dung, cấu hình nghiệp vụ và xem audit log.
 - **FR-10:** AI hỗ trợ hỏi đáp, tìm kiếm ngữ nghĩa và giải thích quan hệ sau khi được nhóm duyệt về quyền riêng tư.
 
 ## 6. Yêu cầu phi chức năng
@@ -154,4 +154,4 @@ Người dùng chỉ được xem hoặc sửa dữ liệu thuộc phạm vi gia
 
 ## 9. Các bước tiếp theo
 
-Nhóm rà soát và thống nhất các câu hỏi ở mục 7; sau đó cập nhật ERD, hoàn thiện các file SQL đang để trống, rồi xây dựng API và giao diện theo các ca sử dụng. Nếu quy tắc nghiệp vụ thay đổi trong quá trình làm, nhóm cập nhật lại tài liệu này.
+Nhóm rà soát và thống nhất các câu hỏi ở mục 7; sau đó đồng bộ ERD, schema và seed; API/giao diện nghiệp vụ sẽ được triển khai theo ca sử dụng. Nếu quy tắc nghiệp vụ thay đổi trong quá trình làm, nhóm cập nhật lại tài liệu này.

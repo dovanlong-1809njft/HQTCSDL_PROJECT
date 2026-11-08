@@ -1,8 +1,8 @@
 /* =====================================================================
    database/seed/01_seed.sql
-   Người 4 — Dữ liệu mẫu cho toàn bộ 14 bảng
+   Người 4 — Dữ liệu mẫu cho toàn bộ 22 bảng
    =====================================================================
-   Chạy SAU CÙNG, khi cả 6 file trong database/schema/ đã hoàn tất.
+   Chạy SAU CÙNG, khi cả 8 file trong database/schema/ đã hoàn tất.
 
    Nguyên tắc theo database/seed/README.md:
      - Không có thông tin cá nhân thật. Email dùng miền example.invalid
@@ -34,7 +34,7 @@ SET NOCOUNT ON;
 GO
 
 /* ---------------------------------------------------------------------
-   1. Kiểm tra đủ 14 bảng trước khi chèn
+   1. Kiểm tra đủ 22 bảng trước khi chèn
    --------------------------------------------------------------------- */
 
 DECLARE @missing NVARCHAR(MAX) = N'';
@@ -53,6 +53,14 @@ IF OBJECT_ID(N'community.Events',          N'U') IS NULL SET @missing += N'commu
 IF OBJECT_ID(N'community.EventParticipants', N'U') IS NULL SET @missing += N'community.EventParticipants, ';
 IF OBJECT_ID(N'reports.AuditLog',          N'U') IS NULL SET @missing += N'reports.AuditLog, ';
 IF OBJECT_ID(N'heritage.Items',            N'U') IS NULL SET @missing += N'heritage.Items, ';
+IF OBJECT_ID(N'core.SystemConfigs',N'U') IS NULL SET @missing += N'core.SystemConfigs, ';
+IF OBJECT_ID(N'genealogy.Educations',N'U') IS NULL SET @missing += N'genealogy.Educations, ';
+IF OBJECT_ID(N'genealogy.WorkHistories',N'U') IS NULL SET @missing += N'genealogy.WorkHistories, ';
+IF OBJECT_ID(N'community.PostMedia',N'U') IS NULL SET @missing += N'community.PostMedia, ';
+IF OBJECT_ID(N'community.EventReminders',N'U') IS NULL SET @missing += N'community.EventReminders, ';
+IF OBJECT_ID(N'community.EventGalleries',N'U') IS NULL SET @missing += N'community.EventGalleries, ';
+IF OBJECT_ID(N'community.ReportedContents',N'U') IS NULL SET @missing += N'community.ReportedContents, ';
+IF OBJECT_ID(N'heritage.Honors',N'U') IS NULL SET @missing += N'heritage.Honors, ';
 
 IF LEN(@missing) > 0
 BEGIN
@@ -99,7 +107,15 @@ BEGIN TRY
        3. Dọn dữ liệu mẫu cũ, theo thứ tự con trước cha
        ----------------------------------------------------------------- */
 
-    DELETE FROM heritage.Items            WHERE CAST(Id AS CHAR(36)) LIKE 'EEEEEEEE-%';
+    DELETE FROM heritage.Honors WHERE CAST(Id AS CHAR(36)) LIKE 'F0000006-%';
+    DELETE FROM heritage.Items WHERE CAST(Id AS CHAR(36)) LIKE 'EEEEEEEE-%';
+    DELETE FROM community.ReportedContents WHERE CAST(Id AS CHAR(36)) LIKE 'F0000007-%';
+    DELETE FROM community.EventGalleries WHERE CAST(Id AS CHAR(36)) LIKE 'F0000005-%';
+    DELETE FROM community.EventReminders WHERE CAST(Id AS CHAR(36)) LIKE 'F0000004-%';
+    DELETE FROM community.PostMedia WHERE CAST(Id AS CHAR(36)) LIKE 'F0000003-%';
+    DELETE FROM genealogy.WorkHistories WHERE CAST(Id AS CHAR(36)) LIKE 'F0000002-%';
+    DELETE FROM genealogy.Educations WHERE CAST(Id AS CHAR(36)) LIKE 'F0000001-%';
+    DELETE FROM core.SystemConfigs WHERE ConfigKey IN ('demo.directory.enabled','demo.family.display_name');
     DELETE FROM reports.AuditLog          WHERE CAST(Id AS CHAR(36)) LIKE 'CCCCCCCC-%';
     DELETE FROM community.EventParticipants WHERE CAST(Id AS CHAR(36)) LIKE 'BBBBBBBB-%';
     DELETE FROM community.Events          WHERE CAST(Id AS CHAR(36)) LIKE 'AAAAAAAA-%';
@@ -145,7 +161,7 @@ BEGIN TRY
        Ba thế hệ. UserId để NULL với người chưa có tài khoản.
        ----------------------------------------------------------------- */
 
-    INSERT INTO genealogy.Members
+   INSERT INTO genealogy.Members
         (Id, FamilyId, BranchId, UserId, FullName, BirthDate, Location, CreatedAt)
     VALUES
         (@mOng,    @fam, @brTruong, NULL,     N'Nguyễn Văn Cẩn',   '1938-03-12', N'Hà Nội',          @t0),
@@ -155,21 +171,37 @@ BEGIN TRY
         (@mHung,   @fam, @brThu,    @uHung,   N'Nguyễn Văn Hùng',  '1995-09-24', N'TP. Hồ Chí Minh', @t0),
         (@mLan,    @fam, @brThu,    @uLan,    N'Nguyễn Thị Lan',   '1999-02-14', N'Đà Nẵng',         @t0);
 
+    -- [Từ nhánh kia] Dữ liệu cấu hình hệ thống
+    INSERT INTO core.SystemConfigs (ConfigKey, ConfigValue, Description, UpdatedAt)
+    VALUES 
+        ('demo.directory.enabled', N'true', N'Bật danh bạ demo.', @t0),
+        ('demo.family.display_name', N'Họ Nguyễn Văn — Thạch Thất', N'Tên gia đình demo.', @t0);
+
+    -- Dữ liệu học vấn (Giữ bản đầy đủ của bạn, UUID của bạn)
     INSERT INTO genealogy.Educations
         (Id, MemberId, Institution, Degree, StartDate, EndDate, CreatedAt)
     VALUES
-        ('45555555-5555-5555-5555-000000000001', @mTruong, N'Đại học Sư phạm Hà Nội',   N'Cử nhân Sư phạm',           '1986-09-01', '1990-06-30', @t0),
+        ('45555555-5555-5555-5555-000000000001', @mTruong, N'Đại học Sư phạm Hà Nội',   N'Cử nhân Sư phạm',          '1986-09-01', '1990-06-30', @t0),
         ('45555555-5555-5555-5555-000000000002', @mHung,   N'Đại học Bách Khoa TP.HCM', N'Kỹ sư Công nghệ thông tin', '2013-09-01', '2018-06-30', @t0),
         ('45555555-5555-5555-5555-000000000003', @mLan,    N'Đại học Kinh tế Đà Nẵng',  N'Sinh viên Cử nhân',         '2017-09-01', NULL,         @t0);
 
+    -- Dữ liệu quá trình công tác (Kết hợp cả hai bản)
     INSERT INTO genealogy.WorkHistories
         (Id, MemberId, Company, Position, StartDate, EndDate, CreatedAt)
     VALUES
         ('46666666-6666-6666-6666-000000000001', @mOng,    N'Xưởng mộc Thạch Thất',      N'Thợ mộc cả',       '1960-01-01', '2005-12-31', @t0),
+        
+        -- Quá trình công tác của ông Trường: Dạy THCS rồi lên THPT
+        ('F0000002-0000-0000-0000-000000000001', @mTruong, N'Trường THCS Thạch Thất',    N'Giáo viên',        '1990-08-01', '1991-08-31', @t0),
         ('46666666-6666-6666-6666-000000000002', @mTruong, N'Trường THPT Thạch Thất',    N'Giáo viên Toán',   '1991-09-01', NULL,         @t0),
+        
         ('46666666-6666-6666-6666-000000000003', @mMai,    N'Công ty Thương mại Hà Tây', N'Kế toán tổng hợp', '1995-03-01', NULL,         @t0),
         ('46666666-6666-6666-6666-000000000004', @mHung,   N'Công ty Phần mềm FPT',      N'Kỹ sư phần mềm',   '2018-08-01', NULL,         @t0);
 
+    -- [Từ nhánh kia] Dữ liệu vinh danh
+    INSERT INTO heritage.Honors (Id, MemberId, Title, Description, DateAwarded, CreatedAt)
+    VALUES 
+        ('F0000006-0000-0000-0000-000000000001', @mOng, N'Người gìn giữ gia phả', N'Bảo quản gia phả dòng họ.', '1998-01-01', @t0);
     /* -----------------------------------------------------------------
        7. core.MemberVerifications
        Một yêu cầu đã duyệt, một đang chờ.
@@ -221,6 +253,9 @@ BEGIN TRY
         ('77777777-7777-7777-7777-000000000002', @uHung, @fam,
          N'Ảnh chụp buổi giỗ tổ năm ngoái con đã tải lên thư viện ảnh.', DATEADD(DAY, 12, @t0));
 
+    INSERT INTO community.PostMedia (Id,PostId,MediaUrl,MediaType,CreatedAt)
+    VALUES ('F0000003-0000-0000-0000-000000000001','77777777-7777-7777-7777-000000000001',N'/media/posts/gia-pha-scan.jpg',N'image',DATEADD(DAY,10,@t0));
+
     INSERT INTO community.Comments (Id, PostId, UserId, Content, CreatedAt)
     VALUES
         ('88888888-8888-8888-8888-000000000001', '77777777-7777-7777-7777-000000000001', @uMai,
@@ -246,6 +281,11 @@ BEGIN TRY
          CAST('2026-03-15T07:30:00' AS DATETIME2(3)), N'Nhà thờ họ, Thạch Thất, Hà Nội', @t0),
         ('AAAAAAAA-AAAA-AAAA-AAAA-000000000002', @fam, N'Họp mặt đầu xuân',
          CAST('2026-02-20T18:00:00' AS DATETIME2(3)), N'Nhà ông Trường, Hà Nội', @t0);
+
+    INSERT INTO community.EventReminders (Id,EventId,ReminderTime,Status,CreatedAt)
+    VALUES ('F0000004-0000-0000-0000-000000000001','AAAAAAAA-AAAA-AAAA-AAAA-000000000001','2026-03-14T07:30:00',N'sent',DATEADD(DAY,14,@t0));
+    INSERT INTO community.EventGalleries (Id,EventId,MediaUrl,UploadedBy,CreatedAt)
+    VALUES ('F0000005-0000-0000-0000-000000000001','AAAAAAAA-AAAA-AAAA-AAAA-000000000001',N'/media/events/gio-to-2026.jpg',@uHung,DATEADD(DAY,15,@t0));
 
     INSERT INTO community.EventParticipants (Id, EventId, MemberId, RsvpStatus, CreatedAt)
     VALUES
