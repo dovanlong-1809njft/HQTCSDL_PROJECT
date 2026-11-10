@@ -1,3 +1,1 @@
-from app.domains.identity.router import router
-
-__all__ = ["router"]
+"""Identity domain. Routers are registered explicitly in app.api.router."""
