@@ -134,3 +134,59 @@ GO
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE [name] = N'IX_WorkHistories_MemberId' AND [object_id] = OBJECT_ID(N'genealogy.WorkHistories'))
     CREATE INDEX [IX_WorkHistories_MemberId] ON [genealogy].[WorkHistories] ([MemberId]);
 GO
+
+-- Bảng bao đóng (closure table): mọi cặp tổ tiên - hậu duệ
+-- Depth = 0: chính nó; 1: cha/mẹ - con; 2: ông/bà - cháu; 3: cụ - chắt; ...
+IF OBJECT_ID(N'genealogy.MemberClosure', N'U') IS NULL
+BEGIN
+    CREATE TABLE [genealogy].[MemberClosure]
+    (
+        [AncestorId] UNIQUEIDENTIFIER NOT NULL,
+        [DescendantId] UNIQUEIDENTIFIER NOT NULL,
+        [Depth] INT NOT NULL
+            CONSTRAINT [DF_MemberClosure_Depth] DEFAULT 0,
+        [CreatedAt] DATETIME2(0) NOT NULL
+            CONSTRAINT [DF_MemberClosure_CreatedAt] DEFAULT SYSUTCDATETIME(),
+
+        CONSTRAINT [PK_MemberClosure] PRIMARY KEY ([AncestorId], [DescendantId]),
+        -- NO ACTION (không CASCADE) vì 2 FK cùng trỏ về Members sẽ gây lỗi multiple cascade paths
+        CONSTRAINT [FK_MemberClosure_Ancestor] FOREIGN KEY ([AncestorId])
+            REFERENCES [genealogy].[Members] ([Id]),
+        CONSTRAINT [FK_MemberClosure_Descendant] FOREIGN KEY ([DescendantId])
+            REFERENCES [genealogy].[Members] ([Id]),
+        CONSTRAINT [CK_MemberClosure_Depth] CHECK ([Depth] >= 0),
+        CONSTRAINT [CK_MemberClosure_SelfCheck] CHECK
+        (
+            ([Depth] = 0 AND [AncestorId] = [DescendantId])
+            OR ([Depth] > 0 AND [AncestorId] <> [DescendantId])
+        )
+    );
+END;
+GO
+
+-- Tìm tất cả tổ tiên của một thành viên
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE [name] = N'IX_MemberClosure_Descendant_Depth' AND [object_id] = OBJECT_ID(N'genealogy.MemberClosure'))
+    CREATE INDEX [IX_MemberClosure_Descendant_Depth] ON [genealogy].[MemberClosure] ([DescendantId], [Depth]) INCLUDE ([AncestorId]);
+-- Tìm tất cả hậu duệ theo đời
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE [name] = N'IX_MemberClosure_Ancestor_Depth' AND [object_id] = OBJECT_ID(N'genealogy.MemberClosure'))
+    CREATE INDEX [IX_MemberClosure_Ancestor_Depth] ON [genealogy].[MemberClosure] ([AncestorId], [Depth]) INCLUDE ([DescendantId]);
+GO
+
+-- Nạp dữ liệu ban đầu từ ParentChild (chỉ chạy khi bảng còn trống)
+IF NOT EXISTS (SELECT 1 FROM [genealogy].[MemberClosure])
+BEGIN
+    ;WITH Tree AS
+    (
+        SELECT m.[Id] AS AncestorId, m.[Id] AS DescendantId, 0 AS Depth
+        FROM [genealogy].[Members] m
+        UNION ALL
+        SELECT t.AncestorId, pc.[ChildId], t.Depth + 1
+        FROM Tree t
+        INNER JOIN [genealogy].[ParentChild] pc ON pc.[ParentId] = t.DescendantId
+    )
+    INSERT INTO [genealogy].[MemberClosure] ([AncestorId], [DescendantId], [Depth])
+    SELECT AncestorId, DescendantId, MIN(Depth)
+    FROM Tree
+    GROUP BY AncestorId, DescendantId;
+END;
+GO
