@@ -12,7 +12,10 @@ services:
       - sqlserver_data:/var/opt/mssql
 
   backend:
-    build: ./backend
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile
+      target: backend
     environment:
       MSSQL_HOST: db
       MSSQL_PORT: 1433
@@ -26,7 +29,10 @@ services:
       - db
 
   frontend:
-    build: ./frontend
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile
+      target: web
     ports:
       - "${FRONTEND_PORT:-3000}:80"
     depends_on:

@@ -4,8 +4,9 @@ from pathlib import Path
 try:
     from dotenv import load_dotenv
 
-    repo_env = Path(__file__).resolve().parents[4] / ".env"
-    if repo_env.exists():
+    parents = Path(__file__).resolve().parents
+    repo_env = parents[4] / ".env" if len(parents) > 4 else None
+    if repo_env is not None and repo_env.exists():
         load_dotenv(repo_env)
     else:
         load_dotenv()
