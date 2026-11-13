@@ -11,6 +11,8 @@ import { MemberApproval } from "@/features/member-approval/pages/MemberApproval"
 import { Reports } from "@/features/reports/pages/Reports";
 
 const Dashboard = lazy(() => import("@/features/dashboard/pages/Dashboard").then((module) => ({ default: module.Dashboard })));
+const Heritage = lazy(() => import("@/features/heritage/pages/Heritage").then((module) => ({ default: module.Heritage })));
+const FamilyTree = lazy(() => import("@/features/family-tree/pages/FamilyTree").then((module) => ({ default: module.FamilyTree })));
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } } });
 
 export function App() {
@@ -24,6 +26,10 @@ export function App() {
             <Route element={<ProtectedRoute />}>
               <Route element={<AppLayout />}>
                 <Route path="/dashboard" element={<Suspense fallback={<p role="status">Đang tải tổng quan…</p>}><Dashboard /></Suspense>} />
+                <Route element={<ProtectedRoute allowedRoles={["admin", "family_head", "member"]} />}>
+                  <Route path="/heritage" element={<Suspense fallback={<p role="status">Đang tải di sản…</p>}><Heritage /></Suspense>} />
+                  <Route path="/family-tree" element={<Suspense fallback={<p role="status">Đang tải gia phả…</p>}><FamilyTree /></Suspense>} />
+                </Route>
                 <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
                   <Route path="/admin-config" element={<AdminConfig />} />
                   <Route path="/reports" element={<Reports />} />
