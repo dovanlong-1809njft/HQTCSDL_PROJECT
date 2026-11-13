@@ -30,6 +30,7 @@ export function Sidebar({ role, open, onClose }) {
           <nav aria-label="Quản lý" className="space-y-1">
             {role === "admin" && <NavLink to="/admin-config" onClick={onClose} className={({ isActive }) => `flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition ${isActive ? "bg-sage text-forest" : "text-stone-600 hover:bg-stone-50"}`}><span aria-hidden="true" className="w-5 text-center">⚙</span>Cấu hình hệ thống</NavLink>}
             <NavLink to="/member-approval" onClick={onClose} className={({ isActive }) => `flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition ${isActive ? "bg-sage text-forest" : "text-stone-600 hover:bg-stone-50"}`}><span aria-hidden="true" className="w-5 text-center">✓</span>Duyệt thành viên</NavLink>
+            {role === "admin" && <NavLink to="/reports" onClick={onClose} className={({ isActive }) => `flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition ${isActive ? "bg-sage text-forest" : "text-stone-600 hover:bg-stone-50"}`}><span aria-hidden="true" className="w-5 text-center">⚑</span>Báo cáo nội dung</NavLink>}
           </nav>
         </div>}
         <div className="mt-auto rounded-2xl bg-[#f6f5ef] p-4"><p className="text-sm font-semibold text-forest">Lưu giữ chuyện nhà</p><p className="mt-1 text-xs leading-5 text-stone-500">Kết nối thành viên, gìn giữ ký ức gia đình.</p></div>

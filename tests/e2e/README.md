@@ -1,4 +1,4 @@
-# Kiểm thử giao diện quản trị — task 7
+# Kiểm thử giao diện quản trị — task 7 và 8
 
 Hai trang mới là `/admin-config` (admin) và `/member-approval` (admin, family_head). Giao diện dùng layout, Axios, React Hook Form và TanStack Query sẵn có. Tài khoản được xác thực và giới hạn phạm vi chi bởi API task 6.
 
@@ -65,3 +65,19 @@ npm run build
 ```
 
 Trước khi dùng dữ liệu thật, kiểm tra lại hai trang với backend và database thử đang chạy. Mock API chỉ xác nhận hành vi giao diện và nội dung request; kiểm thử SQL Server thật của task 6 nằm trong [tests/api](../api/README.md).
+
+## Task 8 — dashboard và báo cáo nội dung
+
+Dashboard `/dashboard` gọi API thống kê thật cho admin và family_head, có thẻ số liệu, biểu đồ Recharts và bảng số liệu đầy đủ. Admin xem toàn hệ thống; family_head xem các gia đình có hồ sơ đã liên kết. Member/guest vẫn vào dashboard nhưng không gọi API thống kê quản trị. Trang dashboard được tải riêng để thư viện biểu đồ không nằm trong gói đăng nhập ban đầu.
+
+Trang `/reports` và menu **Báo cáo nội dung** chỉ dành cho admin. Có lọc pending/resolved/dismissed và phân trang 20 dòng. **Bỏ qua báo cáo** giữ nguyên nội dung. **Gỡ nội dung** cần xác nhận xóa vĩnh viễn; sau xử lý, danh sách được tải lại để cập nhật các báo cáo liên quan, đồng thời làm mới cache thống kê. Nội dung không còn hoặc không hỗ trợ gỡ chỉ có thể bỏ qua báo cáo.
+
+Nạp SQL task 8 theo [hướng dẫn API](../api/README.md#task-8--thống-kê-và-kiểm-duyệt-nội-dung), rồi cập nhật backend. Với Docker, build lại dịch vụ cần dùng tại thư mục gốc, khi biến môi trường SQL/JWT đã cấu hình:
+
+```powershell
+docker compose up -d --no-deps --build backend frontend
+```
+
+Không chạy lại script khởi tạo/seed trên database đang có dữ liệu để cập nhật riêng task 8.
+
+Bộ test `test_admin_pages.py` dùng cùng lệnh và cờ `RUN_TASK7_UI=1` ở trên cho cả task 7 và 8. Phần task 8 kiểm tra số liệu/biểu đồ, phạm vi family_head, chặn member/guest, lỗi và tải lại, danh sách rỗng, xác nhận xóa, giữ nguyên nội dung khi bỏ qua, lỗi 409, đóng báo cáo liên quan, cập nhật thống kê, phân trang khi có đúng 20 hoặc 21 dòng, chặn bấm trùng, hiển thị văn bản HTML an toàn và bố cục mobile. Luồng đăng nhập xuyên suốt của task 9 chưa thuộc phần này.

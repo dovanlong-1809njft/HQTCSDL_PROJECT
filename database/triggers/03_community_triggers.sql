@@ -30,9 +30,10 @@ BEGIN
           WHERE [Status] = N'pending') AS t
     CROSS APPLY (SELECT
                     COUNT_BIG(*) AS [Total],
-                    SUM(CASE WHEN r.[Id] IN (SELECT [Id] FROM inserted)
+                    SUM(CASE WHEN new_report.[Id] IS NOT NULL
                              THEN 1 ELSE 0 END) AS [NewOnes]
                  FROM [community].[ReportedContents] AS r
+                 LEFT JOIN inserted AS new_report ON new_report.[Id] = r.[Id]
                  WHERE r.[TargetId]   = t.[TargetId]
                    AND r.[TargetType] = t.[TargetType]
                    AND r.[Status]     = N'pending') AS c

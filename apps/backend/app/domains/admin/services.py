@@ -9,7 +9,11 @@ from sqlalchemy.orm import Session
 
 from app.domains.admin import repository
 from app.domains.admin.schemas import (
+    FamilyActivityResponse,
     PendingVerificationResponse,
+    ReportedContentResponse,
+    ResolveReportRequest,
+    ResolveReportResponse,
     ReviewVerificationRequest,
     ReviewVerificationResponse,
     SystemConfigCreate,
@@ -19,7 +23,7 @@ from app.domains.admin.schemas import (
 
 T = TypeVar("T")
 
-# Mã THROW của task 3 và 6; không trả SQL/parameter thô ra API.
+# Mã THROW của các Procedure quản trị; không trả SQL/parameter thô ra API.
 SQL_ERRORS = {
     51001: (422, "Quyết định xác minh không hợp lệ."),
     51002: (503, "Yêu cầu đang được xử lý. Vui lòng thử lại."),
@@ -32,10 +36,18 @@ SQL_ERRORS = {
     51009: (409, "Tài khoản cần xác minh đang bị khóa."),
     51010: (409, "Hồ sơ đã liên kết với tài khoản khác."),
     51011: (409, "Tài khoản đã liên kết với hồ sơ khác."),
+    51030: (422, "Quyết định xử lý báo cáo không hợp lệ."),
+    51031: (503, "Báo cáo đang được xử lý. Vui lòng thử lại."),
+    51032: (403, "Chỉ admin được xử lý báo cáo."),
+    51033: (404, "Không tìm thấy báo cáo."),
+    51034: (409, "Báo cáo đã được xử lý."),
+    51035: (404, "Nội dung bị báo cáo không còn tồn tại."),
+    51036: (404, "Nội dung không còn tồn tại hoặc không phải ảnh được hỗ trợ."),
     51101: (422, "Dữ liệu cấu hình hoặc phân trang không hợp lệ."),
     51102: (403, "Bạn không có quyền thực hiện thao tác này."),
     51103: (409, "Khóa cấu hình đã tồn tại."),
     51104: (404, "Không tìm thấy cấu hình."),
+    51201: (403, "Bạn không có quyền xem thống kê."),
     1205: (503, "Dữ liệu đang được xử lý. Vui lòng thử lại."),
     1222: (503, "Dữ liệu đang bị khóa. Vui lòng thử lại."),
 }
@@ -111,3 +123,19 @@ def review_verification(db: Session, verification_id: UUID, payload: ReviewVerif
                         reviewer_id: UUID) -> ReviewVerificationResponse:
     return _execute(db, lambda: ReviewVerificationResponse.model_validate(repository.review_verification(
         db, reviewer_id=reviewer_id, verification_id=verification_id, decision=payload.decision)), write=True)
+
+
+def get_statistics(db: Session, actor_id: UUID) -> list[FamilyActivityResponse]:
+    return _execute(db, lambda: [FamilyActivityResponse.model_validate(row)
+                                for row in repository.get_statistics(db, actor_id)])
+
+
+def list_reported_contents(db: Session, *, status: str, limit: int, offset: int) -> list[ReportedContentResponse]:
+    return _execute(db, lambda: [ReportedContentResponse.model_validate(row)
+                                for row in repository.list_reported_contents(db, status=status, limit=limit, offset=offset)])
+
+
+def resolve_report(db: Session, report_id: UUID, payload: ResolveReportRequest,
+                   reviewer_id: UUID) -> ResolveReportResponse:
+    return _execute(db, lambda: ResolveReportResponse.model_validate(repository.resolve_report(
+        db, report_id=report_id, reviewer_id=reviewer_id, decision=payload.decision)), write=True)

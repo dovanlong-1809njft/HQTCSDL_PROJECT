@@ -1,14 +1,16 @@
+import { lazy, Suspense } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AppLayout } from "@/shared/layouts/AppLayout";
 import { AuthProvider } from "@/features/auth/hooks/useAuth";
-import { Dashboard } from "@/features/dashboard/pages/Dashboard";
 import { Login } from "@/features/auth/pages/Login";
 import { Register } from "@/features/auth/pages/Register";
 import { ProtectedRoute } from "@/features/auth/components/ProtectedRoute";
 import { AdminConfig } from "@/features/admin-config/pages/AdminConfig";
 import { MemberApproval } from "@/features/member-approval/pages/MemberApproval";
+import { Reports } from "@/features/reports/pages/Reports";
 
+const Dashboard = lazy(() => import("@/features/dashboard/pages/Dashboard").then((module) => ({ default: module.Dashboard })));
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } } });
 
 export function App() {
@@ -21,9 +23,10 @@ export function App() {
             <Route path="/register" element={<Register />} />
             <Route element={<ProtectedRoute />}>
               <Route element={<AppLayout />}>
-                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/dashboard" element={<Suspense fallback={<p role="status">Đang tải tổng quan…</p>}><Dashboard /></Suspense>} />
                 <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
                   <Route path="/admin-config" element={<AdminConfig />} />
+                  <Route path="/reports" element={<Reports />} />
                 </Route>
                 <Route element={<ProtectedRoute allowedRoles={["admin", "family_head"]} />}>
                   <Route path="/member-approval" element={<MemberApproval />} />
