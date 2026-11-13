@@ -8,7 +8,12 @@ from app.core.dependencies import get_db, require_role
 from app.domains.admin import services
 from app.domains.admin.schemas import (
     ConfigKey,
+    FamilyActivityResponse,
     PendingVerificationResponse,
+    ReportedContentResponse,
+    ReportStatus,
+    ResolveReportRequest,
+    ResolveReportResponse,
     ReviewVerificationRequest,
     ReviewVerificationResponse,
     SystemConfigCreate,
@@ -64,3 +69,22 @@ def list_pending_verifications(db: Database, current_user: Reviewer, limit: Page
 def review_verification(verification_id: UUID, payload: ReviewVerificationRequest, db: Database,
                         current_user: Reviewer) -> ReviewVerificationResponse:
     return services.review_verification(db, verification_id, payload, current_user.id)
+
+
+@router.get("/statistics", response_model=list[FamilyActivityResponse])
+def get_statistics(db: Database, current_user: Reviewer) -> list[FamilyActivityResponse]:
+    """Admin xem tất cả; family_head chỉ xem gia đình có hồ sơ đã liên kết."""
+    return services.get_statistics(db, current_user.id)
+
+
+@router.get("/reports", response_model=list[ReportedContentResponse])
+def list_reported_contents(db: Database, current_user: Admin, status: ReportStatus = "pending",
+                           limit: PageLimit = 50, offset: PageOffset = 0) -> list[ReportedContentResponse]:
+    return services.list_reported_contents(db, status=status, limit=limit, offset=offset)
+
+
+@router.patch("/reports/{report_id}/resolve", response_model=ResolveReportResponse)
+def resolve_report(report_id: UUID, payload: ResolveReportRequest, db: Database,
+                   current_user: Admin) -> ResolveReportResponse:
+    """resolved xóa nội dung và đóng báo cáo liên quan; dismissed giữ nguyên nội dung."""
+    return services.resolve_report(db, report_id, payload, current_user.id)

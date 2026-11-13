@@ -34,3 +34,33 @@ Sau khi đã nạp schema và các đối tượng task 3, mở `database/proced
 ```
 
 Backend tự đăng ký router admin trong `apps/backend/app/api/router.py`. Khởi động từ `apps/backend` bằng `python -m uvicorn app.main:app --reload`, mở `http://127.0.0.1:8000/docs` và đăng nhập bằng tài khoản có role phù hợp. Kết nối database của ứng dụng dùng cấu hình `.env` hiện có; `app_backend` đã có quyền EXECUTE trên schema core nên gọi được các Procedure mới.
+
+## Task 8 — thống kê và kiểm duyệt nội dung
+
+| API | Quyền | Hành vi |
+| --- | --- | --- |
+| `GET /api/admin/statistics` | admin, family_head | Số thành viên, bài viết, sự kiện theo gia đình. Admin xem tất cả; family_head chỉ xem gia đình có hồ sơ liên kết bằng `genealogy.Members.UserId`. Chưa có liên kết thì trả danh sách rỗng. |
+| `GET /api/admin/reports?status=pending&limit=20&offset=0` | admin | Danh sách báo cáo, người gửi, lý do, nội dung và khả năng gỡ. `status`: pending/resolved/dismissed; limit 1–200; offset không âm. |
+| `PATCH /api/admin/reports/{report_id}/resolve` | admin | Body chỉ gồm `decision`: resolved hoặc dismissed. Người xử lý luôn lấy từ JWT và tài khoản hiện tại. |
+
+`dismissed` chỉ đóng báo cáo được chọn, giữ nguyên nội dung. `resolved` gọi `community.usp_ResolveReportedContent` của task 3: xóa nội dung thật, đóng các báo cáo pending liên quan và ghi audit trong cùng giao tác. Gỡ bài viết sẽ xóa cả bình luận, ảnh và phản ứng. Nếu bảng `heritage.KnowledgeChunks` đã tồn tại, chỉ các đoạn kiến thức có `SourceType = 'post'` và `SourceId` trùng bài viết bị gỡ mới được xóa; chưa có bảng AI vẫn gỡ bài bình thường. Photo chỉ hỗ trợ ảnh trong `community.PostMedia`. Báo cáo đã xử lý trả 409; báo cáo/nội dung không còn hoặc loại ảnh không hỗ trợ trả 404. Khi ghi audit lỗi, toàn bộ thay đổi, kể cả dữ liệu AI, được rollback.
+
+Khi cập nhật database hiện có, bật SQLCMD Mode trong SSMS và chạy lần lượt:
+
+```sql
+:setvar DB_NAME "FamilyConnect"
+:r database/views/03_community_views.sql
+:r database/triggers/03_community_triggers.sql
+:r database/procedures/01_core_procs.sql
+:r database/procedures/07_dashboard_reports_procs.sql
+```
+
+Các đường dẫn `:r` tính từ thư mục gốc dự án; có thể mở từng file trong SSMS và đặt biến `DB_NAME` thay thế. Cần chạy lại `01_core_procs.sql` để cập nhật kiểm tra bảng AI trong thủ tục xử lý báo cáo. Task 8 không yêu cầu nạp schema AI. Hai file community ở trên sửa lỗi cú pháp chú thích và biểu thức tổng hợp của trigger khi khởi tạo database mới; không nạp lại seed.
+
+Kiểm thử API/SQL trên database thử riêng, dùng lại fixture và cấu hình `TASK6_SQL_SERVER` ở trên:
+
+```powershell
+.\.venv\Scripts\python.exe -X utf8 -m pytest tests/api/test_admin.py tests/api/test_reports.py tests/api/test_config.py -q
+```
+
+`test_reports.py` nạp dữ liệu T-SQL từ `tests/database/task8.integration.sql`, kiểm tra phân quyền, phạm vi gia đình, số đếm, nội dung không còn, phân trang, gỡ từng loại nội dung, đóng báo cáo liên quan, audit và rollback. Các ca AI kiểm tra cả khi chưa có bảng (kể cả triển khai thủ tục trước AI), khi đã có dữ liệu, giữ nguyên kiến thức của nguồn khác và khôi phục đầy đủ khi audit lỗi. Fixture chỉ chạy trong database tên `FamilyConnect_Task6Test_<uuid>`; không ghi vào FamilyConnect đang dùng.

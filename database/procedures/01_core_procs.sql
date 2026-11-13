@@ -117,7 +117,7 @@ GO
 -- Quy uoc photo = community.PostMedia (MediaType image hoac image/*).
 -- dismissed: giu noi dung; resolved: xoa noi dung vi schema chua co co an bai.
 -- Khi xoa post, cac comment/media/reaction bi cascade; dong bao cao lien quan
--- va xoa KnowledgeChunks cua post de tranh AI tiep tuc doc noi dung da go.
+-- va don KnowledgeChunks lien quan neu bang AI da duoc trien khai.
 CREATE OR ALTER PROCEDURE [community].[usp_ResolveReportedContent]
     @ReportId UNIQUEIDENTIFIER,
     @ReviewerUserId UNIQUEIDENTIFIER,
@@ -166,7 +166,8 @@ BEGIN
                     SELECT [Id], N'comment' FROM [community].[Comments] WITH (UPDLOCK, HOLDLOCK) WHERE [PostId] = @TargetId
                     UNION ALL
                     SELECT [Id], N'photo' FROM [community].[PostMedia] WITH (UPDLOCK, HOLDLOCK) WHERE [PostId] = @TargetId;
-                DELETE FROM [heritage].[KnowledgeChunks] WHERE [SourceType] = N'post' AND [SourceId] = @TargetId;
+                IF OBJECT_ID(N'heritage.KnowledgeChunks', N'U') IS NOT NULL
+                    DELETE FROM [heritage].[KnowledgeChunks] WHERE [SourceType] = N'post' AND [SourceId] = @TargetId;
                 DELETE FROM [community].[Posts] WHERE [Id] = @TargetId;
                 SET @DeletedCount = @@ROWCOUNT;
             END

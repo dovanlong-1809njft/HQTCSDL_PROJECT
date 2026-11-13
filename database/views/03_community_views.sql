@@ -1,7 +1,7 @@
 ﻿/* =====================================================================
    database/views/03_community_views.sql
    TV3 - Cong dong & Su kien: view bang tin va ham lich su kien theo thang
-   Chay sau schema/*.sql (init.sh chay thu muc views/ sau schema/)
+   Chay sau cac file SQL trong schema/ (init.sh chay thu muc views/ sau schema/)
    ===================================================================== */
 USE [$(DB_NAME)];
 GO
