@@ -1,60 +1,20 @@
 """Task 7/8 UI checks. Run with RUN_TASK7_UI=1; HTTP APIs are mocked, SQL is untouched."""
-import json
 import os
-from pathlib import Path
 import re
-import socket
-import subprocess
-import sys
-import time
-from urllib.error import URLError
 from urllib.parse import parse_qs, unquote, urlparse
-from urllib.request import urlopen
 
 import pytest
 
 playwright = pytest.importorskip("playwright.sync_api")
 expect = playwright.expect
-ROOT = Path(__file__).resolve().parents[2]
-WEB = ROOT / "apps" / "web"
 
 
 @pytest.fixture(scope="session")
-def browser_app():
+def browser_app(e2e_browser, vite_server):
     if os.getenv("RUN_TASK7_UI") != "1":
         pytest.skip("Set RUN_TASK7_UI=1 to run browser checks.")
-    with socket.socket() as sock:
-        sock.bind(("127.0.0.1", 0))
-        port = sock.getsockname()[1]
-    url = f"http://127.0.0.1:{port}"
-    server = subprocess.Popen(
-        ["node", str(WEB / "node_modules/vite/bin/vite.js"), "--host", "127.0.0.1", "--port", str(port), "--strictPort"],
-        cwd=WEB, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT,
-        creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
-    )
-    try:
-        deadline = time.monotonic() + 30
-        while True:
-            if server.poll() is not None:
-                pytest.fail("Vite stopped. Check npm install and npm run build in apps/web.")
-            try:
-                with urlopen(url, timeout=1):
-                    break
-            except (URLError, TimeoutError):
-                if time.monotonic() > deadline:
-                    pytest.fail("Vite did not start within 30 seconds.")
-                time.sleep(0.1)
-        with playwright.sync_playwright() as engine:
-            browser = engine.chromium.launch(channel="msedge" if sys.platform == "win32" else None)
-            yield browser, url
-            browser.close()
-    finally:
-        server.terminate()
-        try:
-            server.wait(timeout=10)
-        except subprocess.TimeoutExpired:
-            server.kill()
-            server.wait()
+    with vite_server() as url:
+        yield e2e_browser, url
 
 
 def pending(identifier, name, member, branch="Chi A", active=True):

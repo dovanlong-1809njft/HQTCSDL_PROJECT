@@ -1,4 +1,4 @@
-# Kiểm thử giao diện quản trị — task 7 và 8
+# Kiểm thử giao diện quản trị và đăng nhập — task 7, 8, 9
 
 Hai trang mới là `/admin-config` (admin) và `/member-approval` (admin, family_head). Giao diện dùng layout, Axios, React Hook Form và TanStack Query sẵn có. Tài khoản được xác thực và giới hạn phạm vi chi bởi API task 6.
 
@@ -80,4 +80,52 @@ docker compose up -d --no-deps --build backend frontend
 
 Không chạy lại script khởi tạo/seed trên database đang có dữ liệu để cập nhật riêng task 8.
 
-Bộ test `test_admin_pages.py` dùng cùng lệnh và cờ `RUN_TASK7_UI=1` ở trên cho cả task 7 và 8. Phần task 8 kiểm tra số liệu/biểu đồ, phạm vi family_head, chặn member/guest, lỗi và tải lại, danh sách rỗng, xác nhận xóa, giữ nguyên nội dung khi bỏ qua, lỗi 409, đóng báo cáo liên quan, cập nhật thống kê, phân trang khi có đúng 20 hoặc 21 dòng, chặn bấm trùng, hiển thị văn bản HTML an toàn và bố cục mobile. Luồng đăng nhập xuyên suốt của task 9 chưa thuộc phần này.
+Bộ test `test_admin_pages.py` dùng cùng lệnh và cờ `RUN_TASK7_UI=1` ở trên cho cả task 7 và 8. Phần task 8 kiểm tra số liệu/biểu đồ, phạm vi family_head, chặn member/guest, lỗi và tải lại, danh sách rỗng, xác nhận xóa, giữ nguyên nội dung khi bỏ qua, lỗi 409, đóng báo cáo liên quan, cập nhật thống kê, phân trang khi có đúng 20 hoặc 21 dòng, chặn bấm trùng, hiển thị văn bản HTML an toàn và bố cục mobile. Luồng đăng nhập thật của task 9 nằm trong nhóm riêng bên dưới.
+
+## Task 9 — luồng đăng nhập xuyên suốt
+
+`test_login_flow.py` chạy **Edge/Chromium → Vite proxy → FastAPI/Uvicorn → SQL Server thật**. Test nhập form đăng nhập/đăng ký, nhận JWT thật và xác nhận tài khoản qua `/api/auth/me`. Không điền sẵn token hoặc người dùng vào localStorage, không giả lập response đăng nhập. Riêng ca mất mạng chủ động hủy request để kiểm tra không đăng nhập bằng tài khoản demo khi backend không kết nối được.
+
+`conftest.py` dùng chung trình duyệt và cách khởi động Vite cho hai nhóm test. Mỗi nhóm có Vite trên cổng riêng; task 9 còn tự chạy FastAPI trên cổng riêng rồi tự tắt khi xong. Các biến `VITE_API_URL=/api`, `VITE_PROXY_TARGET` trỏ vào backend thử và `VITE_ENABLE_MOCK_AUTH=false` chỉ áp dụng trong process test. Không dùng backend Docker đang chạy, không sửa `.env` của dự án.
+
+Test dùng lại fixture tạo database từ task 6, tên `FamilyConnect_Task6Test_<uuid>`, và tự xóa khi kết thúc. Mỗi ca nạp lại `tests/database/task6.integration.sql` và `tests/database/task9.integration.sql`; mật khẩu được băm bằng chính hàm Argon2 của ứng dụng. Các file T-SQL fixture có chặn chạy ngoài database thử. Không chạy chúng bằng tay trên FamilyConnect đang dùng.
+
+Tài khoản Windows chạy test cần quyền tạo/xóa database và `EXECUTE AS USER` trên SQL Server local, giống kiểm thử API. Cài frontend dependencies trong `apps/web` và `apps/backend/requirements-dev.txt` trước; không cần khởi động Docker, backend hoặc Vite bằng tay.
+
+Chạy riêng task 9 tại thư mục gốc:
+
+```powershell
+$env:RUN_TASK9_E2E = '1'
+$env:TASK6_SQL_SERVER = 'localhost'
+
+# Duong dan ngan giup mssql-python nap binary khi thu muc du an co tieng Viet.
+$task9Packages = & .\.venv\Scripts\python.exe -X utf8 -c "import ctypes,sysconfig; b=ctypes.create_unicode_buffer(32768); ctypes.windll.kernel32.GetShortPathNameW(sysconfig.get_paths()['purelib'],b,len(b)); print(b.value)"
+$env:PYTHONPATH = $task9Packages
+
+.\.venv\Scripts\python.exe -X utf8 -m pytest tests/e2e/test_login_flow.py -q
+```
+
+Chạy chung task 7–9 trong cùng phiên PowerShell:
+
+```powershell
+$env:RUN_TASK7_UI = '1'
+.\.venv\Scripts\python.exe -X utf8 -m pytest tests/e2e -q
+```
+
+Không đặt `RUN_TASK9_E2E=1` thì bỏ qua module đăng nhập thật; không đặt `TASK6_SQL_SERVER` thì bỏ qua phần cần SQL Server. Nhóm UI giả lập task 7–8 vẫn chạy riêng với `RUN_TASK7_UI=1` và không cần SQL Server.
+
+| Ca | Nội dung | Kết quả cần đạt |
+| --- | --- | --- |
+| TC01–04 | Đăng nhập admin, family_head, member, guest từ URL cần đăng nhập | Nhận JWT thật; trở về trang được phép; vai trò thấp không gọi API quản trị |
+| TC05–07 | Sai mật khẩu, email không tồn tại, tài khoản khóa | API 401; ở lại form; không lưu token |
+| TC08 | Email sai định dạng, mật khẩu quá ngắn | Báo validation; không gửi request đăng nhập |
+| TC09 | Đăng ký tên Unicode → đăng xuất → đăng nhập lại | Tài khoản lưu trong SQL với mật khẩu băm; role member; cùng UserId |
+| TC10 | Đăng ký email đã tồn tại | API 409; hiển thị lỗi; không đăng nhập |
+| TC11 | Xác nhận mật khẩu không khớp | Chặn request đăng ký |
+| TC12 | Reload, mở tab khác, đăng xuất và đổi tài khoản | Giữ phiên khi reload; đồng bộ đăng xuất/đăng nhập; không giữ dữ liệu admin |
+| TC13 | JWT hết hạn | Backend thử phát JWT đã hết hạn; API bảo vệ trả 401; xóa phiên |
+| TC14 | Khóa tài khoản sau khi đăng nhập | Request tiếp theo trả 401 và về đăng nhập |
+| TC15 | Đổi admin thành member khi JWT còn hạn | Backend đọc quyền hiện tại trong SQL; trả 403, ẩn dữ liệu cấu hình |
+| TC16 | Mất kết nối khi đăng nhập | Hiển thị lỗi; không chuyển sang tài khoản demo |
+
+TC13 chỉ thay thời hạn JWT trong process backend thử của ca đó. Tài khoản của fixture (chỉ có trong database thử): `admin@example.com`, `head@example.com`, `member@example.com`, `guest@example.com`, `inactive@example.com`, cùng mật khẩu `Task9-Test-Password!2026`. Tài khoản cuối bị khóa. Không dùng các thông tin này làm tài khoản thật của dự án.
