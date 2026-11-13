@@ -1,10 +1,10 @@
 import { NavLink } from "react-router-dom";
 
-const primaryLinks = [{ label: "Tổng quan", icon: "⌂", to: "/dashboard" }];
+const primaryLinks = [{ label: "Tổng quan", icon: "⌂", to: "/dashboard" },
+  { label: "Cây gia phả", icon: "⌘", to: "/family-tree" },
+  { label: "Di sản", icon: "▤", to: "/heritage" }];
 const upcomingLinks = [
-  { label: "Cây gia phả", icon: "⌘" },
   { label: "Cộng đồng", icon: "♡" },
-  { label: "Di sản", icon: "▤" },
   { label: "Danh bạ", icon: "♧" },
   { label: "Trợ lý AI", icon: "✳" },
 ];
