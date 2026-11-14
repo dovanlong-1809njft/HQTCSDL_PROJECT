@@ -1,13 +1,25 @@
 <!doctype html>
-<html lang="vi">
+<html lang="vi" data-type="software" data-radius="round" data-buttons="solid" data-motion>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#244b3e" />
-    <title>FamilyConnect</title>
+    <meta name="page-type" content="software" />
+    <meta name="site-kind" content="software" />
+    <meta name="description" content="Quản lý gia phả, kết nối thành viên và lưu giữ di sản qua các thế hệ cùng FamilyConnect." />
+    <meta property="og:title" content="FamilyConnect — Không gian gia đình" />
+    <meta property="og:description" content="Gia phả, câu chuyện và di sản của gia đình trong một không gian chung." />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="/share.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="stylesheet" href="/assets/motion/motion.css" />
+    <script>document.documentElement.classList.add('m-enter');setTimeout(()=>document.documentElement.classList.add('m-enter-done'),700)</script>
+    <title>FamilyConnect — Gia phả & Di sản gia đình</title>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+    <script type="module" src="/assets/motion/motion.js"></script>
   </body>
 </html>

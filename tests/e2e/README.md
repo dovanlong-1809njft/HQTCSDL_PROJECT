@@ -1,5 +1,7 @@
 # Kiểm thử giao diện quản trị và đăng nhập — task 7, 8, 9
 
+Mục 4–6 mới bổ sung `/profile`, `/family-management` và quản lý quan hệ trong `/family-tree`. `test_membership_ui.py` kiểm tra thao tác, quyền trưởng chi và bố cục 1440/1024/768/390. Chạy cùng `RUN_TASK7_UI=1` và pytest như bên dưới. Xem [hướng dẫn chức năng và quyền](../../docs/membership-genealogy.md).
+
 Hai trang mới là `/admin-config` (admin) và `/member-approval` (admin, family_head). Giao diện dùng layout, Axios, React Hook Form và TanStack Query sẵn có. Tài khoản được xác thực và giới hạn phạm vi chi bởi API task 6.
 
 ## Chạy ứng dụng

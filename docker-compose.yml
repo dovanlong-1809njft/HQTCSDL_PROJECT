@@ -12,6 +12,7 @@ services:
       - sqlserver_data:/var/opt/mssql
 
   backend:
+    image: familyconnect-backend:local
     build:
       context: .
       dockerfile: infra/docker/Dockerfile
@@ -23,8 +24,28 @@ services:
       MSSQL_USER: ${MSSQL_USER:-sa}
       MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD:?Set MSSQL_SA_PASSWORD in .env}"
       JWT_SECRET_KEY: "${JWT_SECRET_KEY:?Set JWT_SECRET_KEY in .env}"
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_EMBEDDING_MODEL: ${GEMINI_EMBEDDING_MODEL:-gemini-embedding-001}
+      GEMINI_EMBEDDING_DIM: ${GEMINI_EMBEDDING_DIM:-256}
+      GEMINI_CHAT_MODEL: ${GEMINI_CHAT_MODEL:-gemini-2.5-flash}
     ports:
       - "${BACKEND_PORT:-8000}:8000"
+    depends_on:
+      db-migrate:
+        condition: service_completed_successfully
+
+  db-migrate:
+    image: familyconnect-backend:local
+    environment:
+      MSSQL_HOST: db
+      MSSQL_PORT: 1433
+      MSSQL_DB: ${MSSQL_DB:-FamilyConnect}
+      MSSQL_USER: ${MSSQL_USER:-sa}
+      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD:?Set MSSQL_SA_PASSWORD in .env}"
+      JWT_SECRET_KEY: "${JWT_SECRET_KEY:?Set JWT_SECRET_KEY in .env}"
+    volumes:
+      - ./database:/database:ro
+    command: ["python", "/database/migrate.py"]
     depends_on:
       - db
 
@@ -37,6 +58,22 @@ services:
       - "${FRONTEND_PORT:-3000}:80"
     depends_on:
       - backend
+
+  worker:
+    image: familyconnect-backend:local
+    command: ["python", "/worker/scheduler.py"]
+    restart: unless-stopped
+    environment:
+      PYTHONPATH: /app
+      MSSQL_HOST: db
+      MSSQL_PORT: 1433
+      MSSQL_DB: ${MSSQL_DB:-FamilyConnect}
+      MSSQL_USER: ${MSSQL_USER:-sa}
+      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD:?Set MSSQL_SA_PASSWORD in .env}"
+      JWT_SECRET_KEY: "${JWT_SECRET_KEY:?Set JWT_SECRET_KEY in .env}"
+    depends_on:
+      db-migrate:
+        condition: service_completed_successfully
 
 volumes:
   sqlserver_data:

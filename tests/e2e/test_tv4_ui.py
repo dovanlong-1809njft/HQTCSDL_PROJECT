@@ -33,6 +33,10 @@ def ui(e2e_browser, vite_server):
             params = parse_qs(urlparse(req.url).query)
             body = req.post_data_json if req.post_data else None
             state["requests"].append((req.method, path, params, body))
+            if path == "/api/genealogy/relationships":
+                route.fulfill(json=dict(parent_child=[],marriages=[],ancestors=[],descendants=[])); return
+            if path == "/api/genealogy/members":
+                route.fulfill(json=dict(items=[],total=0)); return
             if not path.startswith("/api/heritage/"):
                 route.fulfill(status=404, json={"detail": "Unexpected API"}); return
             resource = path.split("/")[3]

@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, TypeAdapter, field_validator
 
 
 class RegisterRequest(BaseModel):
@@ -10,15 +10,26 @@ class RegisterRequest(BaseModel):
 
 
 class LoginRequest(BaseModel):
-    email: EmailStr
+    email: str = Field(min_length=3, max_length=255, pattern=r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
     password: str = Field(min_length=1, max_length=128)
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def existing_email(cls, value):
+        if not isinstance(value, str):
+            return value
+        value = value.strip()
+        # Existing SQL fixtures use reserved addresses; login still verifies the hash.
+        if value.lower().endswith(".invalid"):
+            return value
+        return str(TypeAdapter(EmailStr).validate_python(value))
 
 
 class UserResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
-    email: EmailStr
+    email: str
     full_name: str
     role: str
 

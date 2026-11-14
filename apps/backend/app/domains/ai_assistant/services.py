@@ -7,7 +7,9 @@ from google.genai import types
 from sqlalchemy.orm import Session
 
 from app.core.config import GEMINI_API_KEY, GEMINI_EMBEDDING_DIM, GEMINI_EMBEDDING_MODEL
-from app.domains.ai_assistant.repository import compute_cosine_similarity, upsert_knowledge_chunk
+from app.core.family_access import require_family_access
+from app.domains.identity.models import User
+from app.domains.ai_assistant.repository import compute_cosine_similarity, get_source_family, upsert_knowledge_chunk
 from app.domains.ai_assistant.schemas import (
     CosineTestRequest,
     CosineTestResponse,
@@ -73,7 +75,13 @@ def test_sql_cosine_service(payload: CosineTestRequest, db: Session) -> CosineTe
     )
 
 
-def embed_and_upsert_chunk_service(payload: UpsertChunkRequest, db: Session) -> UpsertChunkResponse:
+def embed_and_upsert_chunk_service(payload: UpsertChunkRequest, actor: User, db: Session) -> UpsertChunkResponse:
+    require_family_access(db, actor, payload.family_id, manage=True)
+    source_family = get_source_family(db, payload.source_type, payload.source_id)
+    if source_family is None:
+        raise HTTPException(404, "Không tìm thấy dữ liệu nguồn để lập chỉ mục.")
+    if str(source_family) != str(payload.family_id):
+        raise HTTPException(403, "Dữ liệu nguồn không thuộc gia đình đã chọn.")
     vector = generate_embedding(payload.chunk_text)
     saved = upsert_knowledge_chunk(
         db,

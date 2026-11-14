@@ -11,6 +11,13 @@ def compute_cosine_similarity(db: Session, vec_a_json: str, vec_b_json: str) -> 
     return float(result) if result is not None else None
 
 
+def get_source_family(db: Session, source_type: str, source_id: UUID):
+    tables = {"post": "community.Posts", "heritage": "heritage.Items", "member": "genealogy.Members"}
+    # Keep the source alive until its index write commits.
+    return db.execute(text(f"SELECT FamilyId FROM {tables[source_type]} WITH (HOLDLOCK) WHERE Id=:source_id"),
+                      {"source_id": str(source_id)}).scalar_one_or_none()
+
+
 def upsert_knowledge_chunk(
     db: Session,
     *,

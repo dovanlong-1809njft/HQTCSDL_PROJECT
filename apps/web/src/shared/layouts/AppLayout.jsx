@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useCallback, useState } from "react";
 import { Outlet } from "react-router-dom";
 import { Navbar } from "./Navbar";
 import { Sidebar } from "./Sidebar";
@@ -7,6 +7,11 @@ import { useAuth } from "@/features/auth/hooks/useAuth";
 export function AppLayout() {
   const { user } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const closeSidebar = useCallback(() => setSidebarOpen(false), []);
 
-  return <div className="min-h-screen bg-sand lg:flex"><Sidebar role={user?.role ?? "guest"} open={sidebarOpen} onClose={() => setSidebarOpen(false)} /><div className="min-w-0 flex-1"><Navbar onMenuClick={() => setSidebarOpen(true)} /><main className="mx-auto w-full max-w-[1440px] p-4 sm:p-7 lg:p-9"><Outlet /></main></div></div>;
+  return <div className="app-shell">
+    <a className="skip-link" href="#main-content">Đến nội dung chính</a>
+    <Sidebar role={user?.role ?? "guest"} open={sidebarOpen} onClose={closeSidebar} />
+    <div className="app-workspace"><Navbar sidebarOpen={sidebarOpen} onMenuClick={() => setSidebarOpen(true)} /><main id="main-content" className="app-content" tabIndex={-1}><Outlet /></main></div>
+  </div>;
 }

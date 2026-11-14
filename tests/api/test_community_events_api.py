@@ -13,7 +13,7 @@ Chạy:
 from __future__ import annotations
 
 import sys
-from datetime import UTC, datetime
+from datetime import UTC, datetime,timedelta
 from pathlib import Path
 from uuid import UUID, uuid4
 
@@ -75,6 +75,9 @@ class FakeResult:
     def scalar_one(self):
         return self._scalar
 
+    def scalar_one_or_none(self):
+        return self._scalar
+
 
 class FakeSession:
     """Phiên giả: ghi lại mọi câu lệnh và trả dữ liệu dựng sẵn theo từ khóa."""
@@ -82,15 +85,31 @@ class FakeSession:
     def __init__(self) -> None:
         self.statements: list[tuple[str, dict]] = []
         self.commits = 0
+        self.is_member = True
+        self.owns_member = True
+        self.source_family = FAMILY_ID
+        self.post_family = FAMILY_ID
+        self.event_family = FAMILY_ID
 
     def execute(self, statement, params=None):
         sql = " ".join(str(statement).split())
         self.statements.append((sql, params or {}))
 
+        if "AS IsMember" in sql:
+            return FakeResult([{"Id": params["family_id"], "IsMember": self.is_member and params["family_id"] == str(FAMILY_ID)}])
+        if "SELECT 1 FROM genealogy.Members" in sql:
+            return FakeResult(scalar=1 if self.owns_member and params["member_id"] == str(MEMBER_ID) else None)
+        if "SELECT FamilyId FROM" in sql:
+            return FakeResult(scalar=self.source_family)
+        if "SELECT p.FamilyId FROM" in sql:
+            return FakeResult(scalar=self.post_family)
+
         if "usp_CreatePostWithMedia" in sql:
             return FakeResult([{"PostId": POST_ID}])
+        if "usp_UpsertKnowledgeChunk" in sql:
+            return FakeResult([{"ChunkId": uuid4(), "ActionTaken": "INSERT"}])
         if "vw_NewsfeedPosts" in sql:
-            return FakeResult([POST_ROW])
+            return FakeResult([{**POST_ROW, "FamilyId": self.post_family}])
         if "COUNT_BIG(*) FROM community.Posts" in sql:
             return FakeResult(scalar=1)
         if "COUNT_BIG(*) FROM community.Reactions" in sql:
@@ -120,7 +139,7 @@ class FakeSession:
                 ]
             )
         if "fn_GetMonthlyEvents" in sql or "FROM community.Events" in sql:
-            return FakeResult([EVENT_ROW])
+            return FakeResult([{**EVENT_ROW, "FamilyId": self.event_family}])
         if "usp_UpsertReaction" in sql or "usp_UpsertEventRsvp" in sql:
             return FakeResult()
         if "INSERT INTO community.EventReminders" in sql:
@@ -180,6 +199,7 @@ def client(session: FakeSession, monkeypatch: pytest.MonkeyPatch) -> TestClient:
         role="member",
         is_active=True,
     )
+    session.user = fake_user
 
     app.dependency_overrides[get_db] = lambda: session
     app.dependency_overrides[get_current_user] = lambda: fake_user
@@ -277,10 +297,12 @@ def test_rsvp_sai_trang_thai_bi_tu_choi(client):
     assert response.status_code == 422
 
 
-def test_dat_nhac_nho(client, session):
+def test_dat_nhac_nho(client, session,monkeypatch):
+    event_time=datetime.now(UTC)+timedelta(days=7)
+    monkeypatch.setitem(EVENT_ROW,"EventDate",event_time)
     response = client.post(
         f"/api/events/{EVENT_ID}/reminders",
-        json={"reminder_time": "2026-11-20T18:30:00"},
+        json={"reminder_time": (event_time-timedelta(hours=1)).isoformat()},
     )
 
     assert response.status_code == 201

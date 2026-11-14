@@ -12,6 +12,11 @@ from uuid import UUID
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+POST_COLUMNS="""PostId, FamilyId, AuthorId, AuthorName, Content, CreatedAt, CommentCount, ReactionCount, MediaUrls,
+    (SELECT p.IsAnnouncement FROM community.Posts p WHERE p.Id=v.PostId) AS IsAnnouncement,
+    (SELECT r.Type FROM community.Reactions r WHERE r.PostId=v.PostId AND r.UserId=:actor_id) AS MyReaction,
+    (SELECT m.MediaUrl AS url FROM community.PostMedia m WHERE m.PostId=v.PostId ORDER BY m.CreatedAt,m.Id FOR JSON PATH) AS MediaJson"""
+
 
 def create_post_with_media(
     db: Session,
@@ -20,6 +25,7 @@ def create_post_with_media(
     family_id: UUID,
     content: str,
     media_json: str | None,
+    is_announcement: bool=False,
 ) -> UUID:
     """Gọi community.usp_CreatePostWithMedia. Bài viết và ảnh nằm trong một giao tác."""
     stmt = text(
@@ -30,7 +36,8 @@ def create_post_with_media(
             @FamilyId  = :family_id,
             @Content   = :content,
             @MediaJson = :media_json,
-            @PostId    = @NewPostId OUTPUT;
+            @PostId    = @NewPostId OUTPUT,
+            @IsAnnouncement=:is_announcement;
         SELECT @NewPostId AS PostId;
         """
     )
@@ -42,6 +49,7 @@ def create_post_with_media(
                 "family_id": str(family_id),
                 "content": content,
                 "media_json": media_json,
+                "is_announcement": is_announcement,
             },
         )
         .mappings()
@@ -57,20 +65,20 @@ def list_newsfeed(
     family_id: UUID,
     offset: int,
     limit: int,
+    actor_id: UUID | None=None,
 ) -> list[Mapping[str, Any]]:
     """Đọc bảng tin từ View community.vw_NewsfeedPosts, mới nhất trước."""
     stmt = text(
-        """
-        SELECT PostId, FamilyId, AuthorId, AuthorName, Content, CreatedAt,
-               CommentCount, ReactionCount, MediaUrls
-        FROM community.vw_NewsfeedPosts
+        f"""
+        SELECT {POST_COLUMNS}
+        FROM community.vw_NewsfeedPosts v
         WHERE FamilyId = :family_id
-        ORDER BY CreatedAt DESC
+        ORDER BY IsAnnouncement DESC, CreatedAt DESC, PostId
         OFFSET :offset ROWS FETCH NEXT :limit ROWS ONLY
         """
     )
     return list(
-        db.execute(stmt, {"family_id": str(family_id), "offset": offset, "limit": limit})
+        db.execute(stmt, {"family_id": str(family_id), "offset": offset, "limit": limit,"actor_id":str(actor_id) if actor_id else None})
         .mappings()
         .all()
     )
@@ -81,16 +89,15 @@ def count_newsfeed(db: Session, *, family_id: UUID) -> int:
     return int(db.execute(stmt, {"family_id": str(family_id)}).scalar() or 0)
 
 
-def get_post(db: Session, *, post_id: UUID) -> Mapping[str, Any] | None:
+def get_post(db: Session, *, post_id: UUID, actor_id: UUID | None=None) -> Mapping[str, Any] | None:
     stmt = text(
-        """
-        SELECT PostId, FamilyId, AuthorId, AuthorName, Content, CreatedAt,
-               CommentCount, ReactionCount, MediaUrls
-        FROM community.vw_NewsfeedPosts
+        f"""
+        SELECT {POST_COLUMNS}
+        FROM community.vw_NewsfeedPosts v
         WHERE PostId = :post_id
         """
     )
-    return db.execute(stmt, {"post_id": str(post_id)}).mappings().one_or_none()
+    return db.execute(stmt, {"post_id": str(post_id),"actor_id":str(actor_id) if actor_id else None}).mappings().one_or_none()
 
 
 def add_comment(db: Session, *, post_id: UUID, user_id: UUID, content: str) -> Mapping[str, Any]:
@@ -149,6 +156,15 @@ def count_reactions(db: Session, *, post_id: UUID) -> int:
     return int(db.execute(stmt, {"post_id": str(post_id)}).scalar() or 0)
 
 
+def get_report_family(db: Session, target_type: str, target_id: UUID):
+    queries = {
+        "post": "SELECT FamilyId FROM community.Posts WHERE Id=:target_id",
+        "comment": "SELECT p.FamilyId FROM community.Comments c JOIN community.Posts p ON p.Id=c.PostId WHERE c.Id=:target_id",
+        "photo": "SELECT p.FamilyId FROM community.PostMedia m JOIN community.Posts p ON p.Id=m.PostId WHERE m.Id=:target_id",
+    }
+    return db.execute(text(queries[target_type]), {"target_id": str(target_id)}).scalar_one_or_none()
+
+
 def create_report(
     db: Session,
     *,
@@ -160,9 +176,12 @@ def create_report(
     """Chèn báo cáo. Trigger trg_ReportedContents_Escalation sẽ tự ghi AuditLog khi đủ ngưỡng."""
     stmt = text(
         """
+        SET NOCOUNT ON;
+        DECLARE @Inserted TABLE(Id UNIQUEIDENTIFIER,TargetId UNIQUEIDENTIFIER,TargetType NVARCHAR(50),Status NVARCHAR(20),CreatedAt DATETIME2(0));
         INSERT INTO community.ReportedContents (TargetId, TargetType, ReportedBy, Reason)
-        OUTPUT inserted.Id, inserted.TargetId, inserted.TargetType, inserted.Status, inserted.CreatedAt
-        VALUES (:target_id, :target_type, :reported_by, :reason)
+        OUTPUT inserted.Id, inserted.TargetId, inserted.TargetType, inserted.Status, inserted.CreatedAt INTO @Inserted
+        VALUES (:target_id, :target_type, :reported_by, :reason);
+        SELECT * FROM @Inserted;
         """
     )
     row = (

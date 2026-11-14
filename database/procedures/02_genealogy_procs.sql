@@ -235,7 +235,8 @@ CREATE OR ALTER PROCEDURE [genealogy].[usp_SearchDirectory]
     @Generation INT = NULL,
     @RootMemberId UNIQUEIDENTIFIER = NULL,
     @PageNumber INT = 1,
-    @PageSize INT = 50
+    @PageSize INT = 50,
+    @Location NVARCHAR(300) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -272,6 +273,7 @@ BEGIN
         WHERE (@FamilyId IS NULL OR m.[FamilyId] = @FamilyId)
           AND (@BranchId IS NULL OR m.[BranchId] = @BranchId)
           AND (@Keyword IS NULL OR CHARINDEX(@Keyword, m.[FullName]) > 0)
+          AND (NULLIF(LTRIM(RTRIM(@Location)),N'') IS NULL OR CHARINDEX(@Location,m.Location)>0)
           AND (@RootMemberId IS NULL OR g.[GenDepth] IS NOT NULL)
           AND (@Occupation IS NULL OR EXISTS
                (
@@ -315,7 +317,7 @@ BEGIN
         ORDER BY e.[EndDate] DESC, e.[StartDate] DESC
     ) edu
     WHERE (@Generation IS NULL OR b.[Generation] = @Generation)
-    ORDER BY b.[Generation], b.[BirthDate], b.[FullName]
+    ORDER BY b.[Generation], b.[BirthDate], b.[FullName], b.[Id]
     OFFSET (@PageNumber - 1) * @PageSize ROWS
     FETCH NEXT @PageSize ROWS ONLY;
 END;

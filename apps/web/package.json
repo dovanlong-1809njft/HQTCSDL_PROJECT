@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
-    "preview": "vite preview --host 0.0.0.0"
+    "preview": "vite preview --host 0.0.0.0",
+    "test:ui": "node ../../tests/unit/web-ui.test.mjs"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.62.8",

@@ -1,6 +1,7 @@
 """Task 7/8 UI checks. Run with RUN_TASK7_UI=1; HTTP APIs are mocked, SQL is untouched."""
 import os
 import re
+import time
 from urllib.parse import parse_qs, unquote, urlparse
 
 import pytest
@@ -335,6 +336,11 @@ def test_old_401_does_not_clear_new_session(ui):
     open_as(page, "/member-approval")
     with page.expect_request("**/api/admin/verifications/a/review"):
         page.get_by_role("button", name="Duyệt Nguyễn An", exact=True).click()
+    # The request event can arrive before Playwright dispatches the route handler.
+    deadline = time.monotonic() + 5
+    while not state["held"] and time.monotonic() < deadline:
+        page.wait_for_timeout(10)
+    assert state["held"], "The review request was not intercepted."
     assert state["held"][0].request.headers["authorization"] == "Bearer test-admin"
     page.get_by_role("button", name="Đăng xuất", exact=True).click()
     expect(page).to_have_url(re.compile(r"/login$"))
