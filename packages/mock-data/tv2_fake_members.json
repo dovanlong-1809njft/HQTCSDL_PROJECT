@@ -1,0 +1,255 @@
+{
+  "family_id": "00000000-0000-4000-8000-000000999999",
+  "branches": [
+    {
+      "id": "00000000-0000-4000-8000-000000001001",
+      "name": "Chi nhánh Hà Nội"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000001002",
+      "name": "Chi nhánh Huế"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000001003",
+      "name": "Chi nhánh TP. Hồ Chí Minh"
+    }
+  ],
+  "members": [
+    {
+      "id": "00000000-0000-4000-8000-000000000101",
+      "family_id": "00000000-0000-4000-8000-000000999999",
+      "branch_id": "00000000-0000-4000-8000-000000001001",
+      "full_name": "Nguyễn Văn Phúc",
+      "birth_date": "1948-03-12",
+      "location": "Hà Nội",
+      "generation": 1,
+      "educations": [
+        {
+          "institution": "Đại học Sư phạm Hà Nội",
+          "degree": "Cử nhân Sư phạm",
+          "start_date": "1966-09-01",
+          "end_date": "1970-06-30"
+        }
+      ],
+      "work_histories": [
+        {
+          "company": "Trường THPT Nguyễn Trãi",
+          "position": "Giáo viên",
+          "start_date": "1970-09-01",
+          "end_date": "2008-06-30"
+        }
+      ]
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000102",
+      "family_id": "00000000-0000-4000-8000-000000999999",
+      "branch_id": "00000000-0000-4000-8000-000000001001",
+      "full_name": "Nguyễn Thị Mai",
+      "birth_date": "1951-09-24",
+      "location": "Hà Nội",
+      "generation": 1,
+      "educations": [
+        {
+          "institution": "Đại học Kinh tế Quốc dân",
+          "degree": "Cử nhân Kế toán",
+          "start_date": "1970-09-01",
+          "end_date": "1974-06-30"
+        }
+      ],
+      "work_histories": [
+        {
+          "company": "Công ty Thương mại Hà Nội",
+          "position": "Kế toán",
+          "start_date": "1975-01-01",
+          "end_date": "2006-12-31"
+        }
+      ]
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000103",
+      "family_id": "00000000-0000-4000-8000-000000999999",
+      "branch_id": "00000000-0000-4000-8000-000000001001",
+      "full_name": "Nguyễn Văn Hòa",
+      "birth_date": "1972-06-08",
+      "location": "Hà Nội",
+      "generation": 2,
+      "educations": [
+        {
+          "institution": "Đại học Y Hà Nội",
+          "degree": "Bác sĩ đa khoa",
+          "start_date": "1990-09-01",
+          "end_date": "1996-06-30"
+        }
+      ],
+      "work_histories": [
+        {
+          "company": "Bệnh viện Bạch Mai",
+          "position": "Bác sĩ",
+          "start_date": "1997-01-01",
+          "end_date": null
+        }
+      ]
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000104",
+      "family_id": "00000000-0000-4000-8000-000000999999",
+      "branch_id": "00000000-0000-4000-8000-000000001001",
+      "full_name": "Nguyễn Thị Lan",
+      "birth_date": "1975-11-17",
+      "location": "Hà Nội",
+      "generation": 2,
+      "educations": [
+        {
+          "institution": "Đại học Công đoàn",
+          "degree": "Cử nhân Quản trị nhân lực",
+          "start_date": "1993-09-01",
+          "end_date": "1997-06-30"
+        }
+      ],
+      "work_histories": [
+        {
+          "company": "Công ty Công nghệ Sao Việt",
+          "position": "Quản lý nhân sự",
+          "start_date": "2000-01-01",
+          "end_date": null
+        }
+      ]
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000105",
+      "family_id": "00000000-0000-4000-8000-000000999999",
+      "branch_id": "00000000-0000-4000-8000-000000001002",
+      "full_name": "Nguyễn Văn Bình",
+      "birth_date": "1979-02-01",
+      "location": "Huế",
+      "generation": 2,
+      "educations": [
+        {
+          "institution": "Đại học Kiến trúc Hà Nội",
+          "degree": "Thạc sĩ Kiến trúc",
+          "start_date": "1997-09-01",
+          "end_date": "2003-06-30"
+        }
+      ],
+      "work_histories": [
+        {
+          "company": "Công ty Kiến trúc Cố Đô",
+          "position": "Kiến trúc sư",
+          "start_date": "2004-01-01",
+          "end_date": null
+        }
+      ]
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000106",
+      "family_id": "00000000-0000-4000-8000-000000999999",
+      "branch_id": "00000000-0000-4000-8000-000000001001",
+      "full_name": "Nguyễn Minh Anh",
+      "birth_date": "1999-04-20",
+      "location": "Hà Nội",
+      "generation": 3,
+      "educations": [
+        {
+          "institution": "Đại học Bách khoa Hà Nội",
+          "degree": "Kỹ sư Công nghệ thông tin",
+          "start_date": "2017-09-01",
+          "end_date": "2021-06-30"
+        }
+      ],
+      "work_histories": [
+        {
+          "company": "Công ty Công nghệ Sao Việt",
+          "position": "Kỹ sư phần mềm",
+          "start_date": "2021-08-01",
+          "end_date": null
+        }
+      ]
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000107",
+      "family_id": "00000000-0000-4000-8000-000000999999",
+      "branch_id": "00000000-0000-4000-8000-000000001001",
+      "full_name": "Nguyễn Thu Hà",
+      "birth_date": "2001-08-15",
+      "location": "Hà Nội",
+      "generation": 3,
+      "educations": [
+        {
+          "institution": "Học viện Báo chí và Tuyên truyền",
+          "degree": "Cử nhân Truyền thông",
+          "start_date": "2019-09-01",
+          "end_date": "2023-06-30"
+        }
+      ],
+      "work_histories": [
+        {
+          "company": "Đài Truyền hình Việt Nam",
+          "position": "Chuyên viên truyền thông",
+          "start_date": "2023-08-01",
+          "end_date": null
+        }
+      ]
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000108",
+      "family_id": "00000000-0000-4000-8000-000000999999",
+      "branch_id": "00000000-0000-4000-8000-000000001002",
+      "full_name": "Nguyễn Hoàng Nam",
+      "birth_date": "2003-01-30",
+      "location": "Huế",
+      "generation": 3,
+      "educations": [
+        {
+          "institution": "Đại học Y Dược Huế",
+          "degree": "Đang học",
+          "start_date": "2021-09-01",
+          "end_date": null
+        }
+      ],
+      "work_histories": []
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000109",
+      "family_id": "00000000-0000-4000-8000-000000999999",
+      "branch_id": "00000000-0000-4000-8000-000000001003",
+      "full_name": "Nguyễn Thảo Vy",
+      "birth_date": "2004-12-05",
+      "location": "TP. Hồ Chí Minh",
+      "generation": 3,
+      "educations": [
+        {
+          "institution": "Đại học Văn Lang",
+          "degree": "Cử nhân Thiết kế",
+          "start_date": "2022-09-01",
+          "end_date": null
+        }
+      ],
+      "work_histories": [
+        {
+          "company": "Studio Màu Sắc",
+          "position": "Thiết kế đồ họa",
+          "start_date": "2024-06-01",
+          "end_date": null
+        }
+      ]
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000110",
+      "family_id": "00000000-0000-4000-8000-000000999999",
+      "branch_id": "00000000-0000-4000-8000-000000001001",
+      "full_name": "Nguyễn Gia Bảo",
+      "birth_date": "2010-05-11",
+      "location": "Hà Nội",
+      "generation": 4,
+      "educations": [
+        {
+          "institution": "Trường THCS Nguyễn Du",
+          "degree": "Đang học",
+          "start_date": "2022-09-01",
+          "end_date": null
+        }
+      ],
+      "work_histories": []
+    }
+  ]
+}
