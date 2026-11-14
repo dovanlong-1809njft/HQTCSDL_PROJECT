@@ -156,48 +156,49 @@ def delete_member(db: Session, member_id: UUID) -> bool:
 def exec_add_child_node(db: Session, payload: AddChildNodeRequest) -> None:
     statement = text(
         """
+        DECLARE @NewId UNIQUEIDENTIFIER;
         EXEC genealogy.usp_AddChildNode
             @ParentId = :p_id,
             @ChildId = :c_id,
-            @RelationType = :relation_type
+             @ParentChildId = @NewId OUTPUT;
+        SELECT @NewId AS id;
         """
     )
     try:
-        db.execute(
+        new_id = db.execute(
             statement,
-            {
-                "p_id": str(payload.parent_id),
-                "c_id": str(payload.child_id),
-                "relation_type": payload.relation_type,
-            },
-        )
+            {"p_id": str(payload.parent_id), "c_id": str(payload.child_id)},
+        ).scalar()
         db.commit()
+        return UUID(str(new_id)) if new_id else None
     except Exception:
         db.rollback()
         raise
 
 
-def exec_add_marriage(db: Session, payload: AddMarriageRequest) -> None:
+def exec_add_marriage(db: Session, payload: AddMarriageRequest) -> UUID | None:
     statement = text(
         """
+        DECLARE @NewId UNIQUEIDENTIFIER;
         EXEC genealogy.usp_AddMarriage
-            @SpouseAId = :a_id,
-            @SpouseBId = :b_id,
-            @MarriageDate = :marriage_date,
-            @Status = :status
+            @MemberAId = :a_id,
+            @MemberBId = :b_id,
+            @MarriedDate = :married_date,
+            @MarriageId = @NewId OUTPUT;
+        SELECT @NewId AS id;
         """
     )
     try:
-        db.execute(
+        new_id = db.execute(
             statement,
             {
                 "a_id": str(payload.spouse_a_id),
                 "b_id": str(payload.spouse_b_id),
-                "marriage_date": payload.marriage_date,
-                "status": payload.status,
+                "married_date": payload.marriage_date,
             },
-        )
+        ).scalar()
         db.commit()
+        return UUID(str(new_id)) if new_id else None
     except Exception:
         db.rollback()
         raise
