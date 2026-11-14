@@ -105,4 +105,4 @@ DELETE FROM genealogy.MemberClosure
 WHERE AncestorId IN (@A,@B,@C,@D,@E,@F)
    OR DescendantId IN (@A,@B,@C,@D,@E,@F);
 DELETE FROM genealogy.Members WHERE Id IN (@A,@B,@C,@D,@E,@F);
-GO
+GO  

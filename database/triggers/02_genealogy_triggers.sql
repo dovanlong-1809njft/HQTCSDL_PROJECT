@@ -67,4 +67,4 @@ BEGIN
         THROW 50002, N'Quan hệ cha/mẹ - con tạo ra chu trình huyết thống (con là tổ tiên của cha/mẹ).', 1;
     END;
 END;
-GO
+GO  
