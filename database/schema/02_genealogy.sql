@@ -189,4 +189,4 @@ BEGIN
     FROM Tree
     GROUP BY AncestorId, DescendantId;
 END;
-GO
+GO   

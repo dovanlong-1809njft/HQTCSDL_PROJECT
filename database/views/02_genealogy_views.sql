@@ -128,4 +128,4 @@ OUTER APPLY
     FROM genealogy.WorkHistories AS w
     WHERE w.[MemberId] = m.[Id]
 ) AS wk;
-GO
+GO  
