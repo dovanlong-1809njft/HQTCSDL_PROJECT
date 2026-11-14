@@ -12,16 +12,11 @@ import {
   View,
 } from 'react-native';
 
-import {
-  DIRECTORY_BRANCHES,
-  fetchDirectory,
-  GENERATION_OPTIONS,
-} from './api';
+import { fetchDirectory, GENERATION_OPTIONS } from './api';
 
 const PAGE_SIZE = 8;
 
 const EMPTY_FILTERS = {
-  branchId: '',
   generation: null,
   occupation: '',
   education: '',
@@ -38,13 +33,18 @@ function getInitials(name) {
     .toUpperCase();
 }
 
-function FilterChip({ label, selected, onPress }) {
+function FilterChip({ label, selected, disabled, onPress }) {
   return (
     <TouchableOpacity
       accessibilityRole="button"
-      accessibilityState={{ selected }}
+      accessibilityState={{ selected, disabled }}
+      disabled={disabled}
       onPress={onPress}
-      style={[styles.chip, selected && styles.chipSelected]}
+      style={[
+        styles.chip,
+        selected && styles.chipSelected,
+        disabled && styles.disabledButton,
+      ]}
     >
       <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
         {label}
@@ -54,9 +54,12 @@ function FilterChip({ label, selected, onPress }) {
 }
 
 function MemberCard({ member }) {
-  const currentJobs = (member.work_histories || []).filter(
-    (job) => job.end_date === null,
-  );
+  const job = [member.latest_position, member.latest_company]
+    .filter(Boolean)
+    .join(' · ');
+  const education = [member.latest_degree, member.latest_institution]
+    .filter(Boolean)
+    .join(' · ');
 
   return (
     <View style={styles.card}>
@@ -80,32 +83,17 @@ function MemberCard({ member }) {
         <Text style={styles.detail}>Địa chỉ: {member.location}</Text>
       ) : null}
 
-      {member.work_histories?.length ? (
+      {job ? (
         <View style={styles.detailBlock}>
-          <Text style={styles.label}>Công việc</Text>
-          {member.work_histories.map((job, index) => (
-            <Text key={`${job.company}-${index}`} style={styles.detail}>
-              {job.position} · {job.company}
-              {job.end_date === null ? ' · Đang công tác' : ''}
-            </Text>
-          ))}
+          <Text style={styles.label}>Công việc gần nhất</Text>
+          <Text style={styles.detail}>{job}</Text>
         </View>
       ) : null}
 
-      {member.educations?.length ? (
+      {education ? (
         <View style={styles.detailBlock}>
-          <Text style={styles.label}>Học vấn</Text>
-          {member.educations.map((education, index) => (
-            <Text
-              key={`${education.institution}-${index}`}
-              style={styles.detail}
-            >
-              {education.degree
-                ? `${education.degree} · `
-                : ''}
-              {education.institution}
-            </Text>
-          ))}
+          <Text style={styles.label}>Học vấn gần nhất</Text>
+          <Text style={styles.detail}>{education}</Text>
         </View>
       ) : null}
     </View>
@@ -127,6 +115,15 @@ export default function DirectoryScreen({ familyId }) {
 
   useEffect(() => {
     let active = true;
+
+    if (!familyId) {
+      setMembers([]);
+      setTotal(0);
+      setLoading(false);
+      setRefreshing(false);
+      setError('Chưa chọn gia đình.');
+      return undefined;
+    }
 
     setLoading(true);
     setError('');
@@ -158,7 +155,6 @@ export default function DirectoryScreen({ familyId }) {
   }, [familyId, filters, keyword, page, revision]);
 
   const activeFilterCount = [
-    filters.branchId,
     filters.generation,
     filters.occupation.trim(),
     filters.education.trim(),
@@ -171,10 +167,13 @@ export default function DirectoryScreen({ familyId }) {
   }
 
   function applyFilters() {
+    const occupation = draftFilters.occupation.trim();
     setFilters({
-      ...draftFilters,
-      occupation: draftFilters.occupation.trim(),
+      generation: draftFilters.generation,
+      occupation,
       education: draftFilters.education.trim(),
+      // chỉ có nghĩa khi đã nhập nghề nghiệp
+      onlyCurrentJob: occupation ? draftFilters.onlyCurrentJob : false,
     });
     setPage(1);
     setFilterVisible(false);
@@ -255,7 +254,7 @@ export default function DirectoryScreen({ familyId }) {
           <RefreshControl refreshing={refreshing} onRefresh={refresh} />
         }
         ListEmptyComponent={
-          !loading ? (
+          !loading && !error ? (
             <Text style={styles.emptyText}>
               Không tìm thấy thành viên phù hợp.
             </Text>
@@ -313,34 +312,6 @@ export default function DirectoryScreen({ familyId }) {
               style={styles.filterContent}
               keyboardShouldPersistTaps="handled"
             >
-              <Text style={styles.sectionTitle}>Chi nhánh</Text>
-              <View style={styles.chipGroup}>
-                <FilterChip
-                  label="Tất cả"
-                  selected={!draftFilters.branchId}
-                  onPress={() =>
-                    setDraftFilters((current) => ({
-                      ...current,
-                      branchId: '',
-                    }))
-                  }
-                />
-                {DIRECTORY_BRANCHES.map((branch) => (
-                  <FilterChip
-                    key={branch.id}
-                    label={branch.name}
-                    selected={draftFilters.branchId === branch.id}
-                    onPress={() =>
-                      setDraftFilters((current) => ({
-                        ...current,
-                        branchId:
-                          current.branchId === branch.id ? '' : branch.id,
-                      }))
-                    }
-                  />
-                ))}
-              </View>
-
               <Text style={styles.sectionTitle}>Thế hệ</Text>
               <View style={styles.chipGroup}>
                 <FilterChip
@@ -399,16 +370,22 @@ export default function DirectoryScreen({ familyId }) {
                 }
               />
 
-              <FilterChip
-                label="Chỉ người đang công tác"
-                selected={draftFilters.onlyCurrentJob}
-                onPress={() =>
-                  setDraftFilters((current) => ({
-                    ...current,
-                    onlyCurrentJob: !current.onlyCurrentJob,
-                  }))
-                }
-              />
+              <View style={{ marginTop: 12 }}>
+                <FilterChip
+                  label="Chỉ tính công việc hiện tại (cùng ô nghề nghiệp)"
+                  selected={
+                    draftFilters.onlyCurrentJob &&
+                    Boolean(draftFilters.occupation.trim())
+                  }
+                  disabled={!draftFilters.occupation.trim()}
+                  onPress={() =>
+                    setDraftFilters((current) => ({
+                      ...current,
+                      onlyCurrentJob: !current.onlyCurrentJob,
+                    }))
+                  }
+                />
+              </View>
             </ScrollView>
 
             <View style={styles.sheetActions}>
