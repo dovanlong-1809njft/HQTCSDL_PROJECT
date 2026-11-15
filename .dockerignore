@@ -8,3 +8,8 @@ venv
 .env
 **/.env
 **/.env.local
+**/.taste-skill
+database/backups
+apps/mobile/.dart_tool
+apps/mobile/build
+apps/mobile/android/.gradle

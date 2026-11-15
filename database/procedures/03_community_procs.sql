@@ -15,7 +15,8 @@ CREATE OR ALTER PROCEDURE [community].[usp_CreatePostWithMedia]
     @FamilyId  UNIQUEIDENTIFIER,
     @Content   NVARCHAR(MAX),
     @MediaJson NVARCHAR(MAX) = NULL,
-    @PostId    UNIQUEIDENTIFIER OUTPUT
+    @PostId    UNIQUEIDENTIFIER OUTPUT,
+    @IsAnnouncement BIT = 0
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -31,11 +32,13 @@ BEGIN
     BEGIN TRY
         BEGIN TRAN;
 
+        EXEC heritage.usp_AssertFamilyAccess @UserId,@FamilyId,@IsAnnouncement;
+
         DECLARE @NewPost TABLE ([Id] UNIQUEIDENTIFIER);
 
-        INSERT INTO [community].[Posts] ([UserId], [FamilyId], [Content])
+        INSERT INTO [community].[Posts] ([UserId], [FamilyId], [Content],IsAnnouncement)
         OUTPUT inserted.[Id] INTO @NewPost
-        VALUES (@UserId, @FamilyId, @Content);
+        VALUES (@UserId, @FamilyId, @Content,@IsAnnouncement);
 
         SELECT @PostId = [Id] FROM @NewPost;
 

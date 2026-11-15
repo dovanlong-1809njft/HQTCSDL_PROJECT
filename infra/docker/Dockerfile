@@ -14,6 +14,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY apps/backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY apps/backend/app ./app
+COPY apps/worker /worker
 EXPOSE 8000
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 
@@ -21,7 +22,7 @@ CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 FROM node:22-alpine AS web-build
 WORKDIR /app
 COPY apps/web/package*.json ./
-RUN npm install
+RUN npm ci --no-audit --no-fund
 COPY apps/web ./
 RUN npm run build
 
@@ -34,7 +35,7 @@ EXPOSE 80
 FROM node:22-alpine AS web-dev
 WORKDIR /app
 COPY apps/web/package*.json ./
-RUN npm install
+RUN npm ci --no-audit --no-fund
 EXPOSE 5173
 CMD ["npm", "run", "dev"]
 

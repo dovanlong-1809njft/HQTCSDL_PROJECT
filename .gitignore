@@ -13,6 +13,8 @@ venv/
 # Node
 node_modules/
 apps/web/dist/
+apps/web/.taste-skill/
+database/backups/
 
 # IDE / OS
 .vscode/

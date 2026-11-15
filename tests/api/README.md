@@ -1,5 +1,7 @@
 # Kiểm thử API quản trị — task 6
 
+Mục 4–6 có thêm `test_membership_sql.py`, dùng cùng cấu hình SQL và database thử riêng: hồ sơ, gửi/duyệt xác minh, CRUD, quyền trưởng chi, quan hệ và ghi đồng thời với AI. SQL mới là `database/procedures/08_membership_procs.sql`; xem [bàn giao mục 4–6](../../docs/membership-genealogy.md).
+
 `test_admin.py` gọi FastAPI thật và SQL Server thật. Bộ test tự tạo database có tên `FamilyConnect_Task6Test_<uuid>`, nạp các file SQL hiện tại, chạy bằng database user chỉ có quyền đọc/gọi Procedure và tự xóa database thử khi kết thúc. Dữ liệu thử và Trigger mô phỏng lỗi audit viết bằng T-SQL trong [task6.integration.sql](../database/task6.integration.sql).
 
 Tài khoản Windows chạy test cần quyền tạo/xóa database và `EXECUTE AS USER` trên SQL Server thử. Mỗi ca test nạp lại dữ liệu mẫu trong database thử; không dùng dữ liệu FamilyConnect đang làm.
@@ -14,6 +16,8 @@ $env:TASK6_SQL_SERVER = 'localhost'
 ```
 
 `TASK6_SQL_SERVER` dùng cùng tên server như SSMS, ví dụ `localhost` hoặc `.\SQLEXPRESS`. Chỉ đặt `TASK6_SQL_PORT` nếu muốn chỉ định cổng TCP. Nếu chưa đặt `TASK6_SQL_SERVER`, pytest bỏ qua nhóm kiểm thử cần SQL Server.
+
+Trong môi trường SQL Authentication (ví dụ container Linux), đặt thêm `TASK6_SQL_USER` và `TASK6_SQL_PASSWORD` qua biến môi trường. Không đặt hai biến này thì test vẫn dùng Windows Authentication. `test_family_access_sql.py` dùng cùng database thử riêng để kiểm tra phạm vi gia đình, RSVP và nguồn AI bằng SQL/JWT thật.
 
 Trên máy Windows có đường dẫn dự án chứa tiếng Việt, driver `mssql-python` hiện tại có thể báo thiếu binary dù các file đã được cài. Có thể tạo virtualenv tại đường dẫn không dấu, hoặc dùng đường dẫn ngắn của thư mục package trong phiên PowerShell đang chạy test:
 

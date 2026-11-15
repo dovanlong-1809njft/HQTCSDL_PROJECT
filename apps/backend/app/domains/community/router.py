@@ -29,6 +29,10 @@ from app.domains.community.services import (
 )
 from app.domains.identity.models import User
 from app.shared.pagination import PageParams, PaginatedResponse
+import json
+from app.domains.community.schemas import PostUpdateRequest
+from app.domains.genealogy.services import run
+from app.domains.heritage.repository import execute
 
 router = APIRouter(prefix="/community", tags=["community"])
 
@@ -39,7 +43,7 @@ DbSession = Annotated[Session, Depends(get_db)]
 @router.post("/posts", response_model=PostResponse, status_code=status.HTTP_201_CREATED)
 def create_post(payload: PostCreateRequest, current_user: CurrentUser, db: DbSession) -> PostResponse:
     """Đăng bài kèm ảnh. Bài viết và danh sách ảnh ghi trong một giao tác (usp_CreatePostWithMedia)."""
-    return create_post_service(payload, current_user.id, db)
+    return create_post_service(payload, current_user, db)
 
 
 @router.get("/posts", response_model=PaginatedResponse[PostResponse])
@@ -51,12 +55,37 @@ def list_posts(
     page_size: Annotated[int, Query(ge=1, le=100)] = 20,
 ) -> PaginatedResponse[PostResponse]:
     """Bảng tin của một gia đình, đọc từ View vw_NewsfeedPosts."""
-    return list_newsfeed_service(family_id, PageParams(page=page, page_size=page_size), db)
+    return list_newsfeed_service(family_id, PageParams(page=page, page_size=page_size), current_user, db)
 
 
 @router.get("/posts/{post_id}", response_model=PostResponse)
 def get_post(post_id: UUID, current_user: CurrentUser, db: DbSession) -> PostResponse:
-    return get_post_service(post_id, db)
+    return get_post_service(post_id, current_user, db)
+
+
+@router.put("/posts/{post_id}",response_model=PostResponse)
+def update_post(post_id: UUID,payload: PostUpdateRequest,current_user: CurrentUser,db: DbSession):
+    def operation():
+        execute(db,"""EXEC community.usp_ManagePost @ActorUserId=:actor,@PostId=:id,@Action='update',
+            @Content=:content,@MediaJson=:media,@IsAnnouncement=:announcement""",
+            dict(actor=current_user.id,id=post_id,content=payload.content,media=json.dumps([m.model_dump() for m in payload.media]),announcement=payload.is_announcement)).close()
+        return get_post_service(post_id,current_user,db)
+    return run(db,operation,write=True)
+
+
+@router.delete("/posts/{post_id}",status_code=204)
+def delete_post(post_id: UUID,current_user: CurrentUser,db: DbSession):
+    run(db,lambda: execute(db,"EXEC community.usp_ManagePost @ActorUserId=:actor,@PostId=:id,@Action='delete'",dict(actor=current_user.id,id=post_id)).close(),write=True)
+
+
+@router.put("/comments/{identifier}",status_code=204)
+def update_comment(identifier: UUID,payload: CommentCreateRequest,current_user: CurrentUser,db: DbSession):
+    run(db,lambda: execute(db,"EXEC community.usp_ManageComment @ActorUserId=:actor,@Id=:id,@Action='update',@Content=:content",dict(actor=current_user.id,id=identifier,content=payload.content)).close(),write=True)
+
+
+@router.delete("/comments/{identifier}",status_code=204)
+def delete_comment(identifier: UUID,current_user: CurrentUser,db: DbSession):
+    run(db,lambda: execute(db,"EXEC community.usp_ManageComment @ActorUserId=:actor,@Id=:id,@Action='delete'",dict(actor=current_user.id,id=identifier)).close(),write=True)
 
 
 @router.post(
@@ -67,7 +96,7 @@ def get_post(post_id: UUID, current_user: CurrentUser, db: DbSession) -> PostRes
 def create_comment(
     post_id: UUID, payload: CommentCreateRequest, current_user: CurrentUser, db: DbSession
 ) -> CommentResponse:
-    return add_comment_service(post_id, payload, current_user.id, db)
+    return add_comment_service(post_id, payload, current_user, db)
 
 
 @router.get("/posts/{post_id}/comments", response_model=list[CommentResponse])
@@ -78,7 +107,7 @@ def list_comments(
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(ge=1, le=100)] = 50,
 ) -> list[CommentResponse]:
-    return list_comments_service(post_id, PageParams(page=page, page_size=page_size), db)
+    return list_comments_service(post_id, PageParams(page=page, page_size=page_size), current_user, db)
 
 
 @router.put("/posts/{post_id}/reactions", response_model=ReactionResponse)
@@ -86,7 +115,7 @@ def upsert_reaction(
     post_id: UUID, payload: ReactionRequest, current_user: CurrentUser, db: DbSession
 ) -> ReactionResponse:
     """Thả hoặc đổi cảm xúc (MERGE). Gửi type = null để gỡ cảm xúc."""
-    return upsert_reaction_service(post_id, payload, current_user.id, db)
+    return upsert_reaction_service(post_id, payload, current_user, db)
 
 
 @router.post("/reports", response_model=ReportResponse, status_code=status.HTTP_201_CREATED)
@@ -94,4 +123,4 @@ def create_report(
     payload: ReportCreateRequest, current_user: CurrentUser, db: DbSession
 ) -> ReportResponse:
     """Báo cáo nội dung. Đủ 3 báo cáo thì Trigger tự ghi cảnh báo vào reports.AuditLog."""
-    return create_report_service(payload, current_user.id, db)
+    return create_report_service(payload, current_user, db)

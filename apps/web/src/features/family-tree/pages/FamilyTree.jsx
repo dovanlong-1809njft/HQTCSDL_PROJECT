@@ -5,6 +5,7 @@ import "reactflow/dist/style.css";
 import { heritageApi } from "@/features/heritage/api/heritageApi";
 import { FamilyScope, QueryState } from "@/features/heritage/components/FamilyScope";
 import { layoutTree } from "../layout.mjs";
+import { Relationships } from "@/features/genealogy/components/Relationships";
 
 function TreeCanvas({ data }) {
   const graph = useMemo(() => layoutTree(data), [data]);
@@ -31,7 +32,7 @@ function TreeCanvas({ data }) {
 
 function TreeWorkspace({ familyId, user }) {
   const query = useQuery({ queryKey: ["tv4", user.id, familyId, "family-tree"], queryFn: () => heritageApi.tree(familyId) });
-  return <><QueryState query={query} />{query.data && <TreeCanvas data={query.data} />}</>;
+  return <><QueryState query={query} />{query.data && <TreeCanvas data={query.data} />}<Relationships familyId={familyId} user={user} /></>;
 }
 
 export function FamilyTree() {
