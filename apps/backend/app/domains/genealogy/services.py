@@ -82,18 +82,45 @@ def create_member_service(db: Session, payload: MemberCreateRequest) -> MemberRe
         raise _bad_request("Ngày mất không được trước ngày sinh.")
 
     try:
-        row = repository.create_member(db, payload)
-    except IntegrityError as exc:
-        raise _bad_request(
-            _translate_sql_error(exc, "Dòng họ hoặc chi được chọn không tồn tại.")
-        ) from exc
-    except SQLAlchemyError as exc:
-        raise _bad_request(
-            _translate_sql_error(exc, "Không thể tạo thành viên.")
-            if isinstance(exc, DBAPIError)
-            else "Không thể tạo thành viên."
-        ) from exc
-    return _to_member_response(row)
+        rows = repository.search_directory(
+            db,
+            family_id=family_id,
+            keyword=keyword,
+            occupation=occupation,
+            only_current_job=only_current_job,
+            education=education,
+            branch_id=branch_id,
+            generation=generation,
+            root_member_id=root_member_id,
+            page_number=page,
+            page_size=page_size,
+        )
+    except DBAPIError as exc:
+        db.rollback()
+        raise RuntimeError("Không thể tìm kiếm danh bạ trong cơ sở dữ liệu.") from exc
 
+    items = [
+        DirectoryMemberResponse(
+            id=row["Id"],
+            full_name=row["FullName"],
+            birth_date=row["BirthDate"],
+            location=row["Location"],
+            family_id=row["FamilyId"],
+            branch_id=row["BranchId"],
+            generation=row["Generation"],
+            latest_position=row["LatestPosition"],
+            latest_company=row["LatestCompany"],
+            latest_institution=row["LatestInstitution"],
+            latest_degree=row["LatestDegree"],
+        )
+        for row in rows
+    ]
 
-def
+    total = int(rows[0]["TotalCount"]) if rows else 0
+
+    return DirectorySearchResponse(
+        items=items,
+        total=total,
+        page=page,
+        page_size=page_size,
+    )

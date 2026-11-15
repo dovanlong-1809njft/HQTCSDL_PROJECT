@@ -22,9 +22,9 @@ export function Pager({ page, total, pageSize = 12, onChange }) {
   </div>;
 }
 
-export function FamilyScope({ title, description, children }) {
+export function FamilyScope({ title, description, children,initialFamilyId="" }) {
   const { user } = useAuth();
-  const [selected, setSelected] = useState("");
+  const [selected, setSelected] = useState(initialFamilyId);
   const query = useQuery({ queryKey: ["tv4", user.id, "families"], queryFn: heritageApi.families });
   const familyId = query.data?.some((f) => f.id === selected) ? selected : query.data?.[0]?.id;
   return <section className="min-w-0 space-y-5">

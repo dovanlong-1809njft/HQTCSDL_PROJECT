@@ -14,9 +14,17 @@ from sqlalchemy.orm import Session
 
 
 def list_monthly_events(
-    db: Session, *, family_id: UUID, year: int, month: int
+    db: Session, *, family_id: UUID, year: int, month: int,tz_offset: int=0
 ) -> list[Mapping[str, Any]]:
     """Gọi Function community.fn_GetMonthlyEvents để dựng lịch tháng."""
+    if tz_offset:
+        stmt=text("""SELECT e.Id AS EventId,e.FamilyId,e.Title,e.EventDate,e.Location,
+            (SELECT COUNT(*) FROM community.EventParticipants p WHERE p.EventId=e.Id AND p.RsvpStatus='Going') AS GoingCount
+            FROM community.Events e WHERE FamilyId=:family_id
+            AND EventDate>=DATEADD(MINUTE,-:tz_offset,CAST(DATEFROMPARTS(:year,:month,1) AS DATETIME2))
+            AND EventDate<DATEADD(MINUTE,-:tz_offset,DATEADD(MONTH,1,CAST(DATEFROMPARTS(:year,:month,1) AS DATETIME2)))
+            ORDER BY EventDate,e.Id""")
+        return list(db.execute(stmt,dict(family_id=str(family_id),year=year,month=month,tz_offset=tz_offset)).mappings().all())
     stmt = text(
         """
         SELECT EventId, FamilyId, Title, EventDate, Location, GoingCount
@@ -31,17 +39,19 @@ def list_monthly_events(
     )
 
 
-def get_event(db: Session, *, event_id: UUID) -> Mapping[str, Any] | None:
+def get_event(db: Session, *, event_id: UUID,actor_id: UUID | None=None,for_update: bool=False) -> Mapping[str, Any] | None:
     stmt = text(
-        """
+        f"""
         SELECT e.Id AS EventId, e.FamilyId, e.Title, e.EventDate, e.Location,
                (SELECT COUNT_BIG(*) FROM community.EventParticipants AS ep
-                WHERE ep.EventId = e.Id AND ep.RsvpStatus = N'Going') AS GoingCount
-        FROM community.Events AS e
+                WHERE ep.EventId = e.Id AND ep.RsvpStatus = N'Going') AS GoingCount,
+               (SELECT ep.RsvpStatus FROM community.EventParticipants ep JOIN genealogy.Members m ON m.Id=ep.MemberId
+                WHERE ep.EventId=e.Id AND m.UserId=:actor_id) AS MyRsvp
+        FROM community.Events AS e {"WITH(UPDLOCK,HOLDLOCK)" if for_update else ""}
         WHERE e.Id = :event_id
         """
     )
-    return db.execute(stmt, {"event_id": str(event_id)}).mappings().one_or_none()
+    return db.execute(stmt, {"event_id": str(event_id),"actor_id":str(actor_id) if actor_id else None}).mappings().one_or_none()
 
 
 def create_event(
@@ -70,6 +80,13 @@ def create_event(
     ).scalar_one()
     db.commit()
     return UUID(str(event_id))
+
+
+def owns_member(db: Session, member_id: UUID, actor_id: UUID, family_id: UUID) -> bool:
+    return db.execute(text("""
+        SELECT 1 FROM genealogy.Members
+        WHERE Id=:member_id AND UserId=:actor_id AND FamilyId=:family_id
+    """), {"member_id": str(member_id), "actor_id": str(actor_id), "family_id": str(family_id)}).scalar_one_or_none() is not None
 
 
 def upsert_rsvp(db: Session, *, event_id: UUID, member_id: UUID, rsvp_status: str) -> None:
@@ -128,39 +145,18 @@ def list_gallery(db: Session, *, event_id: UUID, offset: int, limit: int) -> lis
     )
 
 
-def create_reminder(db: Session, *, event_id: UUID, reminder_time: datetime) -> Mapping[str, Any]:
+def create_reminder(db: Session, *, event_id: UUID, reminder_time: datetime,user_id: UUID | None=None) -> Mapping[str, Any]:
     stmt = text(
         """
-        INSERT INTO community.EventReminders (EventId, ReminderTime)
-        OUTPUT inserted.Id, inserted.EventId, inserted.ReminderTime, inserted.Status
-        VALUES (:event_id, :reminder_time)
+        INSERT INTO community.EventReminders (EventId, ReminderTime,UserId)
+        OUTPUT inserted.Id, inserted.EventId, inserted.ReminderTime, inserted.Status,inserted.UserId
+        VALUES (:event_id, :reminder_time,:user_id)
         """
     )
     row = (
-        db.execute(stmt, {"event_id": str(event_id), "reminder_time": reminder_time})
+        db.execute(stmt, {"event_id": str(event_id), "reminder_time": reminder_time,"user_id":str(user_id) if user_id else None})
         .mappings()
         .one()
     )
     db.commit()
     return row
-
-
-def claim_due_reminders(db: Session, *, batch_size: int = 50) -> list[Mapping[str, Any]]:
-    """Gọi community.usp_ClaimDueReminders.
-
-    SP dùng UPDLOCK + READPAST nên nhiều worker chạy song song không lấy trùng
-    một nhắc nhở và không phải chờ nhau.
-    """
-    stmt = text("EXEC community.usp_ClaimDueReminders @BatchSize = :batch_size")
-    rows = list(db.execute(stmt, {"batch_size": batch_size}).mappings().all())
-    db.commit()
-    return rows
-
-
-def mark_reminder_failed(db: Session, *, reminder_id: UUID) -> None:
-    """Worker gọi khi gửi thông báo lỗi, trả nhắc nhở về trạng thái failed."""
-    stmt = text(
-        "UPDATE community.EventReminders SET Status = N'failed' WHERE Id = :reminder_id"
-    )
-    db.execute(stmt, {"reminder_id": str(reminder_id)})
-    db.commit()

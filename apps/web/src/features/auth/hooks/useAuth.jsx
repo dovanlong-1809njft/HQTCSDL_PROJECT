@@ -61,6 +61,14 @@ export function AuthProvider({ children }) {
     }
   }, [queryClient]);
 
+  const updateUser = useCallback((fresh) => {
+    setUser((current) => {
+      const next = { ...current, id: fresh.id, fullName: fresh.full_name, email: fresh.email, role: fresh.role };
+      localStorage.setItem("familyconnect.user", JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
   const value = useMemo(() => ({
     user,
     isAuthenticated: Boolean(user && localStorage.getItem("familyconnect.token")),
@@ -68,7 +76,8 @@ export function AuthProvider({ children }) {
     signIn,
     signUp,
     signOut,
-  }), [user, isLoading, signIn, signUp, signOut]);
+    updateUser,
+  }), [user, isLoading, signIn, signUp, signOut, updateUser]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

@@ -18,6 +18,7 @@ DENY UPDATE, DELETE ON OBJECT::reports.AuditLog TO [task6_backend];
 GO
 
 DELETE FROM reports.AuditLog;
+DELETE FROM community.Notifications;
 DELETE FROM core.MemberVerifications;
 DELETE FROM genealogy.Members;
 DELETE FROM core.Branches;

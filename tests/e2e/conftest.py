@@ -20,6 +20,7 @@ def e2e_browser():
     if os.getenv("RUN_TASK7_UI") != "1" and os.getenv("RUN_TASK9_E2E") != "1":
         pytest.skip("Set RUN_TASK7_UI=1 or RUN_TASK9_E2E=1 to run browser checks.")
     with playwright.sync_playwright() as engine:
+        playwright.expect.set_options(timeout=10000)
         browser = engine.chromium.launch(channel="msedge" if sys.platform == "win32" else None)
         try:
             yield browser

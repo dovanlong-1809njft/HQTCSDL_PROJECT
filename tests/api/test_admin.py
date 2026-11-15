@@ -45,9 +45,14 @@ def sql_database():
         pytest.skip("Set TASK6_SQL_SERVER to run the real SQL Server integration tests.")
     name = "FamilyConnect_Task6Test_" + uuid4().hex
     port = os.getenv("TASK6_SQL_PORT")
-    url = URL.create("mssql+mssqlpython", host=server,
+    sql_user = os.getenv("TASK6_SQL_USER")
+    sql_password = os.getenv("TASK6_SQL_PASSWORD")
+    query = {"TrustServerCertificate": "yes"}
+    if not sql_user:
+        query["Trusted_Connection"] = "yes"
+    url = URL.create("mssql+mssqlpython", username=sql_user, password=sql_password, host=server,
                      port=int(port) if port else None, database="master",
-                     query={"Trusted_Connection": "yes", "TrustServerCertificate": "yes"})
+                     query=query)
     master = create_engine(url, isolation_level="AUTOCOMMIT", poolclass=NullPool)
     engine = None
     created = False

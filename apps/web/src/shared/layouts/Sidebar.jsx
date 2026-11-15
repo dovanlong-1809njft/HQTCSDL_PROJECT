@@ -1,40 +1,68 @@
+﻿import { useEffect, useRef } from "react";
 import { NavLink } from "react-router-dom";
-
-const primaryLinks = [{ label: "Tổng quan", icon: "⌂", to: "/dashboard" },
-  { label: "Cây gia phả", icon: "⌘", to: "/family-tree" },
-  { label: "Di sản", icon: "▤", to: "/heritage" }];
-const upcomingLinks = [
-  { label: "Cộng đồng", icon: "♡" },
-  { label: "Danh bạ", icon: "♧" },
-  { label: "Trợ lý AI", icon: "✳" },
-];
+import { Brand } from "@/shared/components/Brand";
+import { Icon } from "@/shared/components/Icon";
 
 export function Sidebar({ role, open, onClose }) {
+  const aside = useRef(null);
   const canManage = role === "admin" || role === "family_head";
+  const links = [
+    { label: "Tổng quan", icon: "layout-dashboard", to: "/dashboard" },
+    { label: "Hồ sơ của tôi", icon: "users", to: "/profile" },
+    { label: "Thông báo", icon: "message-circle", to: "/notifications" },
+    ...(role !== "guest" ? [
+      { label: "Cây gia phả", icon: "network", to: "/family-tree" },
+      { label: "Di sản", icon: "book-open", to: "/heritage" },
+      { label: "Bảng tin", icon: "message-circle", to: "/community" },
+      { label: "Lịch gia đình", icon: "calendar-days", to: "/events" },
+      { label: "Danh bạ", icon: "users", to: "/directory" },
+    ] : []),
+  ];
 
-  return (
-    <>
-      {open && <button aria-label="Đóng menu" className="fixed inset-0 z-30 bg-forest/30 lg:hidden" onClick={onClose} />}
-      <aside className={`fixed inset-y-0 left-0 z-40 flex w-72 flex-col border-r border-[#e6e8df] bg-white px-5 py-6 transition-transform lg:visible lg:static lg:z-auto lg:translate-x-0 ${open ? "visible translate-x-0" : "invisible -translate-x-full"}`}>
-        <div className="mb-9 flex items-center gap-3 px-2">
-          <span className="grid h-11 w-11 place-items-center rounded-2xl bg-sage text-2xl text-forest">⌂</span>
-          <div><p className="font-bold tracking-tight text-forest">FamilyConnect</p><p className="text-xs text-stone-500">Gắn kết qua nhiều thế hệ</p></div>
-        </div>
-        <p className="mb-3 px-3 text-[11px] font-bold uppercase tracking-[0.16em] text-stone-400">Không gian gia đình</p>
-        <nav className="space-y-1">
-          {primaryLinks.map((item) => <NavLink key={item.to} to={item.to} onClick={onClose} className={({ isActive }) => `flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition ${isActive ? "bg-sage text-forest" : "text-stone-600 hover:bg-stone-50"}`}><span className="w-5 text-center text-lg">{item.icon}</span>{item.label}</NavLink>)}
-          {upcomingLinks.map((item) => <div key={item.label} title="Tính năng đang được xây dựng" className="flex cursor-not-allowed items-center gap-3 rounded-xl px-3 py-3 text-sm text-stone-400"><span className="w-5 text-center text-lg">{item.icon}</span>{item.label}<span className="ml-auto text-[10px]">Sắp có</span></div>)}
-        </nav>
-        {canManage && <div className="mt-7 border-t border-stone-100 pt-5">
-          <p className="mb-3 px-3 text-[11px] font-bold uppercase tracking-[0.16em] text-stone-400">Quản lý</p>
-          <nav aria-label="Quản lý" className="space-y-1">
-            {role === "admin" && <NavLink to="/admin-config" onClick={onClose} className={({ isActive }) => `flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition ${isActive ? "bg-sage text-forest" : "text-stone-600 hover:bg-stone-50"}`}><span aria-hidden="true" className="w-5 text-center">⚙</span>Cấu hình hệ thống</NavLink>}
-            <NavLink to="/member-approval" onClick={onClose} className={({ isActive }) => `flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition ${isActive ? "bg-sage text-forest" : "text-stone-600 hover:bg-stone-50"}`}><span aria-hidden="true" className="w-5 text-center">✓</span>Duyệt thành viên</NavLink>
-            {role === "admin" && <NavLink to="/reports" onClick={onClose} className={({ isActive }) => `flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition ${isActive ? "bg-sage text-forest" : "text-stone-600 hover:bg-stone-50"}`}><span aria-hidden="true" className="w-5 text-center">⚑</span>Báo cáo nội dung</NavLink>}
-          </nav>
-        </div>}
-        <div className="mt-auto rounded-2xl bg-[#f6f5ef] p-4"><p className="text-sm font-semibold text-forest">Lưu giữ chuyện nhà</p><p className="mt-1 text-xs leading-5 text-stone-500">Kết nối thành viên, gìn giữ ký ức gia đình.</p></div>
-      </aside>
-    </>
-  );
+  useEffect(() => {
+    if (!open) return;
+    const previousFocus = document.activeElement;
+    const previousOverflow = document.body.style.overflow;
+    const desktop = window.matchMedia("(min-width: 1024px)");
+    if (desktop.matches) { onClose(); return; }
+    document.body.style.overflow = "hidden";
+    const controls = [...aside.current.querySelectorAll("a[href], button")];
+    controls[0]?.focus();
+    function onKey(event) {
+      if (event.key === "Escape") onClose();
+      if (event.key !== "Tab") return;
+      const first = controls[0], last = controls.at(-1);
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    }
+    function onResize() { if (desktop.matches) onClose(); }
+    document.addEventListener("keydown", onKey);
+    desktop.addEventListener("change", onResize);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", onKey);
+      desktop.removeEventListener("change", onResize);
+      previousFocus?.focus();
+    };
+  }, [open, onClose]);
+
+  const navLink = (item) => <NavLink key={item.to} to={item.to} onClick={onClose} className={({ isActive }) => `sidebar-link ${isActive ? "is-active" : ""}`}><Icon name={item.icon} /><span>{item.label}</span><Icon name="chevron-right" className="nav-chevron" /></NavLink>;
+
+  return <>
+    {open && <button tabIndex={-1} aria-label="Đóng menu" className="sidebar-backdrop" onClick={onClose} />}
+    <aside ref={aside} id="app-sidebar" className={`app-sidebar ${open ? "is-open" : ""}`} role={open ? "dialog" : undefined} aria-modal={open ? true : undefined} aria-label="Điều hướng chính">
+      <div className="sidebar-brand"><Brand /><button className="icon-button drawer-close" onClick={onClose} aria-label="Đóng menu"><Icon name="x" /></button></div>
+      <div className="sidebar-space"><span className="space-mark"><Icon name="house" /></span><div><p>Không gian gia đình</p><span>Cùng nhau gìn giữ cội nguồn</span></div></div>
+      <p className="nav-label">Không gian của bạn</p>
+      <nav aria-label="Không gian gia đình">{links.map(navLink)}</nav>
+      <div className="upcoming-nav"><p className="nav-label">Đang phát triển</p>{[{ label: "Trợ lý AI", icon: "message-circle" }].map((item) => <div className="sidebar-unavailable" key={item.label}><Icon name={item.icon} /><span>{item.label}</span><span className="soon-label">Sắp có</span></div>)}</div>
+      {canManage && <div className="management-nav"><p className="nav-label">Quản lý</p><nav aria-label="Quản lý">
+        {navLink({ label: "Gia đình và thành viên", icon: "house", to: "/family-management" })}
+        {role === "admin" && navLink({ label: "Cấu hình hệ thống", icon: "settings", to: "/admin-config" })}
+        {navLink({ label: "Duyệt thành viên", icon: "shield-check", to: "/member-approval" })}
+        {role === "admin" && navLink({ label: "Báo cáo nội dung", icon: "flag", to: "/reports" })}
+      </nav></div>}
+      <div className="sidebar-footer"><Icon name="leaf" /><p>Mỗi thế hệ,<br /><span>một phần câu chuyện.</span></p><span className="sidebar-footer-brand">FamilyConnect</span></div>
+    </aside>
+  </>;
 }
