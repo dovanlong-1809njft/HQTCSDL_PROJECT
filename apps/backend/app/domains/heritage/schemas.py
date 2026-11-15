@@ -9,6 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_vali
 Title = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
 Version = Annotated[str, StringConstraints(pattern=r"^[A-Fa-f0-9]{64}$")]
 ItemType = Literal["document", "story", "photo"]
+ItemFilter = Literal["document", "story", "photo", "video"]
 
 
 class Contract(BaseModel):

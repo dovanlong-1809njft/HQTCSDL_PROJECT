@@ -86,6 +86,12 @@ def mutate(db, actor, family_id, resource, action, payload=None, identifier=None
             values = dict(**checked.model_dump(), expected_version=values["expected_version"])
         elif action == "delete":
             values = dict(expected_version=expected_version)
+        if resource=="items" and action!="delete" and values.get("media_url"):
+            from types import SimpleNamespace
+            from app.domains.community.uploads import validate_media
+            attachment=SimpleNamespace(url=values["media_url"])
+            validate_media(db,actor,family_id,[attachment])
+            values["media_url"]=attachment.url
         result = repo.mutate(db, resource, action, actor.id, family_id, values, identifier)
         return MODELS[resource].model_validate(result) if result is not None else None
     return run(db, operation, write=True)

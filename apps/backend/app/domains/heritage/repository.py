@@ -42,7 +42,13 @@ def page(db, resource, family_id, page, page_size, q="", item_type=None):
     search = "FullName" if resource in ("ranking", "members") else "Title"
     condition = f"FamilyId=:family_id AND (:q=N'' OR CHARINDEX(:q, {search})>0)"
     if resource == "items":
-        condition += " AND (:item_type IS NULL OR Type=:item_type)"
+        video="(LOWER(MediaUrl) LIKE '%.mp4' OR LOWER(MediaUrl) LIKE '%.mp4?%' OR LOWER(MediaUrl) LIKE '%.webm' OR LOWER(MediaUrl) LIKE '%.webm?%')"
+        if item_type=="video":
+            condition += f" AND {video}"
+        else:
+            condition += " AND (:item_type IS NULL OR Type=:item_type)"
+            if item_type=="document":
+                condition += f" AND (MediaUrl IS NULL OR NOT {video})"
     order = {"items": "CreatedAt DESC, Id", "honors": "CreatedAt DESC, Id",
              "ranking": "Rank, FullName, MemberId", "members": "FullName, Id"}[resource]
     params = dict(family_id=family_id, q=q, item_type=item_type, offset=(page-1)*page_size, limit=page_size)

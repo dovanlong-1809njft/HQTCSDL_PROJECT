@@ -15,7 +15,8 @@ from sqlalchemy.orm import Session
 POST_COLUMNS="""PostId, FamilyId, AuthorId, AuthorName, Content, CreatedAt, CommentCount, ReactionCount, MediaUrls,
     (SELECT p.IsAnnouncement FROM community.Posts p WHERE p.Id=v.PostId) AS IsAnnouncement,
     (SELECT r.Type FROM community.Reactions r WHERE r.PostId=v.PostId AND r.UserId=:actor_id) AS MyReaction,
-    (SELECT m.MediaUrl AS url FROM community.PostMedia m WHERE m.PostId=v.PostId ORDER BY m.CreatedAt,m.Id FOR JSON PATH) AS MediaJson"""
+    (SELECT m.MediaUrl AS url FROM community.PostMedia m WHERE m.PostId=v.PostId ORDER BY m.CreatedAt,m.Id FOR JSON PATH) AS MediaJson,
+    (SELECT r.Type AS type,COUNT_BIG(*) AS total FROM community.Reactions r WHERE r.PostId=v.PostId GROUP BY r.Type FOR JSON PATH) AS ReactionCounts"""
 
 
 def create_post_with_media(
@@ -118,20 +119,35 @@ def add_comment(db: Session, *, post_id: UUID, user_id: UUID, content: str) -> M
     return row
 
 
-def list_comments(db: Session, *, post_id: UUID, offset: int, limit: int) -> list[Mapping[str, Any]]:
+def list_comments(db: Session, *, post_id: UUID, offset: int, limit: int, actor_id: UUID) -> list[Mapping[str, Any]]:
     stmt = text(
         """
-        SELECT c.Id, c.PostId, c.UserId, u.FullName AS AuthorName, c.Content, c.CreatedAt
+        SELECT c.Id, c.PostId, c.UserId, u.FullName AS AuthorName, c.Content, c.CreatedAt,
+            (SELECT r.Type FROM community.CommentReactions r WHERE r.CommentId=c.Id AND r.UserId=:actor_id) AS MyReaction,
+            (SELECT COUNT_BIG(*) FROM community.CommentReactions r WHERE r.CommentId=c.Id) AS ReactionCount,
+            (SELECT r.Type AS type,COUNT_BIG(*) AS total FROM community.CommentReactions r WHERE r.CommentId=c.Id GROUP BY r.Type FOR JSON PATH) AS ReactionCounts
         FROM community.Comments AS c
         LEFT JOIN core.Users AS u ON u.UserId = c.UserId
         WHERE c.PostId = :post_id
-        ORDER BY c.CreatedAt
+        ORDER BY c.CreatedAt,c.Id
         OFFSET :offset ROWS FETCH NEXT :limit ROWS ONLY
         """
     )
     return list(
-        db.execute(stmt, {"post_id": str(post_id), "offset": offset, "limit": limit}).mappings().all()
+        db.execute(stmt, {"post_id": str(post_id), "offset": offset, "limit": limit,"actor_id":str(actor_id)}).mappings().all()
     )
+
+
+def reaction_counts(db: Session, post_id: UUID) -> dict[str, int]:
+    rows = db.execute(text("SELECT Type,COUNT_BIG(*) AS Total FROM community.Reactions WHERE PostId=:id GROUP BY Type"), {"id":str(post_id)}).mappings().all()
+    return {row["Type"]:int(row["Total"]) for row in rows}
+
+
+def set_comment_reaction(db: Session, comment_id: UUID, actor_id: UUID, reaction_type: str | None):
+    db.execute(text("EXEC community.usp_SetCommentReaction @CommentId=:id,@ActorUserId=:actor,@Type=:type"),
+        {"id":str(comment_id),"actor":str(actor_id),"type":reaction_type})
+    rows = db.execute(text("SELECT Type,COUNT_BIG(*) AS Total FROM community.CommentReactions WHERE CommentId=:id GROUP BY Type"), {"id":str(comment_id)}).mappings().all()
+    return {row["Type"]:int(row["Total"]) for row in rows}
 
 
 def upsert_reaction(db: Session, *, post_id: UUID, user_id: UUID, reaction_type: str | None) -> None:
