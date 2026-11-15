@@ -16,7 +16,15 @@ class MediaItem(BaseModel):
     @classmethod
     def http_url(cls,value):
         value=value.strip()
+        if any(c.isspace() or c == '\\' or ord(c) < 32 for c in value):
+            raise ValueError('URL ảnh không hợp lệ.')
+        if value.startswith('/media/') and not value.startswith('//'):
+            return value
         TypeAdapter(HttpUrl).validate_python(value)
+        from urllib.parse import urlsplit
+        parsed = urlsplit(value)
+        if parsed.scheme != 'https' or parsed.username or parsed.password:
+            raise ValueError('Ảnh bên ngoài phải dùng HTTPS, không chứa thông tin đăng nhập.')
         return value
 
 
@@ -46,6 +54,7 @@ class PostResponse(BaseModel):
     media_urls: list[str] = Field(default_factory=list)
     is_announcement: bool=False
     my_reaction: str | None=None
+    reaction_counts: dict[str, int] = Field(default_factory=dict)
 
 
 class CommentCreateRequest(BaseModel):
@@ -60,11 +69,15 @@ class CommentResponse(BaseModel):
     author_name: str | None = None
     content: str
     created_at: datetime
+    my_reaction: str | None = None
+    reaction_count: int = 0
+    reaction_counts: dict[str, int] = Field(default_factory=dict)
 
 
 class ReactionRequest(BaseModel):
     """type = None nghĩa là gỡ cảm xúc (usp_UpsertReaction xử lý)."""
 
+    model_config = ConfigDict(extra="forbid")
     type: str | None = Field(default=None, pattern="^(Like|Love|Haha|Wow|Sad|Angry)$")
 
 
@@ -73,6 +86,14 @@ class ReactionResponse(BaseModel):
     user_id: UUID
     type: str | None = None
     reaction_count: int = 0
+    reaction_counts: dict[str, int] = Field(default_factory=dict)
+
+
+class CommentReactionResponse(BaseModel):
+    comment_id: UUID
+    type: str | None = None
+    reaction_count: int = 0
+    reaction_counts: dict[str, int] = Field(default_factory=dict)
 
 
 class ReportCreateRequest(BaseModel):

@@ -13,6 +13,7 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       proxy: {
+        "/media/uploads": {target: proxyTarget, changeOrigin: true},
         "/api": {
           target: proxyTarget,
           changeOrigin: true,

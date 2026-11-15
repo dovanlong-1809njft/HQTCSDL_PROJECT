@@ -9,7 +9,7 @@ from app.domains.identity.models import User
 from app.domains.heritage import services
 from app.domains.heritage.schemas import (
     FamilyResponse, FamilyTree, HonorCreate, HonorPatch, HonorResponse, ItemCreate,
-    ItemPatch, ItemResponse, ItemType, MemberResponse, RankingResponse, Version,
+    ItemPatch, ItemResponse, ItemFilter, MemberResponse, RankingResponse, Version,
 )
 from app.shared.pagination import PaginatedResponse
 
@@ -30,7 +30,7 @@ def families(db: Database, actor: Reader):
 
 @router.get("/items", response_model=PaginatedResponse[ItemResponse])
 def items(family_id: UUID, db: Database, actor: Reader, page: Page = 1, page_size: Size = 12,
-          q: Search = "", item_type: ItemType | None = None):
+          q: Search = "", item_type: ItemFilter | None = None):
     return services.list_resource(db, actor, family_id, "items", page=page, page_size=page_size, q=q, item_type=item_type)
 
 

@@ -11,6 +11,7 @@ from app.core.dependencies import get_current_user
 from app.domains.community.schemas import (
     CommentCreateRequest,
     CommentResponse,
+    CommentReactionResponse,
     PostCreateRequest,
     PostResponse,
     ReactionRequest,
@@ -26,6 +27,7 @@ from app.domains.community.services import (
     list_comments_service,
     list_newsfeed_service,
     upsert_reaction_service,
+    set_comment_reaction_service,
 )
 from app.domains.identity.models import User
 from app.shared.pagination import PageParams, PaginatedResponse
@@ -38,6 +40,11 @@ router = APIRouter(prefix="/community", tags=["community"])
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
 DbSession = Annotated[Session, Depends(get_db)]
+
+
+@router.put("/comments/{comment_id}/reactions", response_model=CommentReactionResponse)
+def react_to_comment(comment_id: UUID, payload: ReactionRequest, current_user: CurrentUser, db: DbSession):
+    return set_comment_reaction_service(comment_id, payload, current_user, db)
 
 
 @router.post("/posts", response_model=PostResponse, status_code=status.HTTP_201_CREATED)
@@ -66,6 +73,9 @@ def get_post(post_id: UUID, current_user: CurrentUser, db: DbSession) -> PostRes
 @router.put("/posts/{post_id}",response_model=PostResponse)
 def update_post(post_id: UUID,payload: PostUpdateRequest,current_user: CurrentUser,db: DbSession):
     def operation():
+        from app.domains.community.uploads import validate_media
+        existing = get_post_service(post_id, current_user, db)
+        validate_media(db, current_user, existing.family_id, payload.media)
         execute(db,"""EXEC community.usp_ManagePost @ActorUserId=:actor,@PostId=:id,@Action='update',
             @Content=:content,@MediaJson=:media,@IsAnnouncement=:announcement""",
             dict(actor=current_user.id,id=post_id,content=payload.content,media=json.dumps([m.model_dump() for m in payload.media]),announcement=payload.is_announcement)).close()
