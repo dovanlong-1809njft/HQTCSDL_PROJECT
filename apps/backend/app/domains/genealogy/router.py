@@ -1,13 +1,29 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
-from app.domains.genealogy.schemas import DirectorySearchResponse
-from app.domains.genealogy.services import search_directory_service
+from app.domains.genealogy.schemas import (
+    AddChildNodeRequest,
+    AddMarriageRequest,
+    DirectorySearchResponse,
+    MemberCreateRequest,
+    MemberResponse,
+    MemberUpdateRequest,
+)
+from app.domains.genealogy.services import (
+    add_child_service,
+    add_marriage_service,
+    create_member_service,
+    delete_member_service,
+    get_member_service,
+    list_members_service,
+    search_directory_service,
+    update_member_service,
+)
 from app.domains.identity.models import User
 
 router = APIRouter(prefix="/genealogy", tags=["genealogy"])
@@ -16,6 +32,7 @@ CurrentUser = Annotated[User, Depends(get_current_user)]
 DbSession = Annotated[Session, Depends(get_db)]
 
 
+# ---------- Directory (đã có) ----------
 @router.get("/directory", response_model=DirectorySearchResponse)
 def search_directory(
     family_id: UUID,
