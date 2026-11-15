@@ -1,86 +1,63 @@
-# Dieu phoi nghiep vu / goi SDK ben ngoai cho domain genealogy
 import re
-from typing import Any
 from uuid import UUID
 
-from fastapi import HTTPException, status
-from sqlalchemy.exc import DBAPIError, IntegrityError, SQLAlchemyError
+from fastapi import HTTPException
+from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import Session
 
 from app.domains.genealogy import repository
 from app.domains.genealogy.schemas import (
-    AddChildNodeRequest,
-    AddMarriageRequest,
     DirectoryMemberResponse,
     DirectorySearchResponse,
-    MemberCreateRequest,
-    MemberResponse,
-    MemberUpdateRequest,
 )
 
-# ... search_directory_service giữ nguyên ...
+
+def run(db, operation, write=False):
+    try:
+        result = operation()
+        if write:
+            db.commit()
+        return result
+    except DBAPIError as exc:
+        db.rollback()
+        marker = re.search(r"\[TV4_SQL:(\d+)\]", str(exc.orig))
+        code = int(marker[1]) if marker else 0
+        if code == 51403:
+            status, message = 403, "Bạn không có quyền thao tác trong gia đình này."
+        elif code in (51404, 50102, 50202):
+            status, message = 404, "Không tìm thấy dữ liệu."
+        elif code in (51509, 2601, 2627, 547, 50103, 50203):
+            status, message = 409, "Dữ liệu bị trùng hoặc còn liên kết. Hãy kiểm tra trước khi thay đổi."
+        elif code in (50100, 50200, 1205, 1222):
+            status, message = 503, "Gia phả đang được xử lý. Vui lòng thử lại."
+        elif code in (51522, 50101, 50104, 50105, 50201, 50204, 50205, 50001, 50002):
+            status, message = (
+                422,
+                "Dữ liệu không hợp lệ: kiểm tra chi nhánh, ngày sinh, chu trình, tối đa hai cha/mẹ và quy tắc huyết thống ba đời.",
+            )
+        else:
+            status, message = 500, "Không thể xử lý dữ liệu gia phả."
+        raise HTTPException(status, message) from None
+    except Exception:
+        if write:
+            db.rollback()
+        raise
 
 
-# ---------- Helper: dịch lỗi SQL Server ----------
-_SQL_MSG_RE = re.compile(r"(?P<msg>.*?)\s*\((?P<num>\d+)\)", re.DOTALL)
-
-# Tra theo nội dung thông báo của SP (không phân biệt hoa thường)
-_KEYWORD_MESSAGES: list[tuple[str, str]] = [
-    ("already married", "Hai người này đã là vợ chồng của nhau."),
-    ("đã kết hôn", "Hai người này đã là vợ chồng của nhau."),
-    ("cycle", "Quan hệ này tạo ra vòng lặp thế hệ trong cây gia phả."),
-    ("circular", "Quan hệ này tạo ra vòng lặp thế hệ trong cây gia phả."),
-    ("vòng lặp", "Quan hệ này tạo ra vòng lặp thế hệ trong cây gia phả."),
-    ("not found", "Không tìm thấy thành viên được chỉ định."),
-    ("không tồn tại", "Không tìm thấy thành viên được chỉ định."),
-]
-
-
-def _parse_sql_error(exc: DBAPIError) -> tuple[int | None, str]:
-    """Tách (mã lỗi, nội dung) từ lỗi pyodbc của SQL Server."""
-    raw = str(exc.orig) if exc.orig is not None else str(exc)
-    tail = raw.rsplit("[SQL Server]", 1)[-1]
-    match = _SQL_MSG_RE.search(tail)
-    if match:
-        return int(match.group("num")), match.group("msg").strip()
-    return None, tail.strip()
-
-
-def _translate_sql_error(exc: DBAPIError, default: str) -> str:
-    """Trả về thông báo tiếng Việt an toàn để hiển thị cho người dùng."""
-    number, message = _parse_sql_error(exc)
-    lowered = message.lower()
-
-    for keyword, vietnamese in _KEYWORD_MESSAGES:
-        if keyword in lowered:
-            return vietnamese
-
-    # Lỗi do team tự THROW/RAISERROR trong SP (mã >= 50000): thông báo đã được
-    # viết cho người dùng nên trả nguyên văn
-    if number is not None and number >= 50000 and message:
-        return message
-
-    if number == 547:  # vi phạm khóa ngoại
-        return "Dữ liệu tham chiếu không hợp lệ hoặc đang được sử dụng ở nơi khác."
-    if number in (2601, 2627):  # trùng khóa duy nhất
-        return "Dữ liệu này đã tồn tại trong hệ thống."
-
-    return default
-
-
-def _bad_request(detail: str) -> HTTPException:
-    return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=detail)
-
-
-def _to_member_response(row: Any) -> MemberResponse:
-    return MemberResponse.model_validate(dict(row))
-
-
-# ---------- Member ----------
-def create_member_service(db: Session, payload: MemberCreateRequest) -> MemberResponse:
-    if payload.birth_date and payload.death_date and payload.death_date < payload.birth_date:
-        raise _bad_request("Ngày mất không được trước ngày sinh.")
-
+def search_directory_service(
+    db: Session,
+    *,
+    family_id: UUID,
+    keyword: str | None,
+    occupation: str | None,
+    only_current_job: bool,
+    education: str | None,
+    branch_id: UUID | None,
+    generation: int | None,
+    root_member_id: UUID | None,
+    page: int,
+    page_size: int,
+) -> DirectorySearchResponse:
     try:
         rows = repository.search_directory(
             db,

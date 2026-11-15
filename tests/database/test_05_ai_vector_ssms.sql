@@ -1,6 +1,6 @@
 /* =====================================================================
    tests/database/test_05_ai_vector_ssms.sql
-   Kịch bản kiểm thử trực tiếp trên SSMS (Không cần Docker / Không cần SQLCMD Mode)
+   Kịch bản kiểm thử trực tiếp trên SSMS — Tuần 1 & Tuần 2 (Thành viên 5)
    Hướng dẫn:
      1. Chạy .\database\init.ps1 trong Terminal VSCode để tạo sẵn DB FamilyConnect.
      2. Mở file này trong SSMS (SQL Server Management Studio) và nhấn F5 (Execute).
@@ -50,7 +50,7 @@ EXEC [heritage].[usp_UpsertKnowledgeChunk]
     @EmbeddingJson = N'[0.10, 0.20, 0.98]',
     @SummaryText   = N'Hiện vật sắc phong thời Nguyễn tại nhà thờ họ.';
 
--- Gọi lặp lại Tư liệu A để kiểm chứng nhánh UPDATE của lệnh MERGE (không báo lỗi trùng khóa)
+-- Gọi lặp lại Tư liệu A để kiểm chứng nhánh UPDATE của lệnh MERGE
 EXEC [heritage].[usp_UpsertKnowledgeChunk]
     @FamilyId      = @FamilyId,
     @SourceType    = N'heritage',
@@ -60,17 +60,38 @@ EXEC [heritage].[usp_UpsertKnowledgeChunk]
     @EmbeddingJson = N'[0.92, 0.38, 0.08]';
 
 
--- 3. MÔ PHỎNG TÌM KIẾM NGỮ NGHĨA (XẾP HẠNG THEO COSINE GẦN BẰNG 1 NHẤT)
+-- 3. KIỂM THỬ TUẦN 2: STORED PROCEDURE TÌM KIẾM NGỮ NGHĨA (heritage.usp_SemanticSearch)
 DECLARE @VectorCauHoi NVARCHAR(MAX) = N'[0.88, 0.42, 0.05]';
 
-SELECT
-    kc.[ChunkIndex],
-    kc.[ChunkText],
-    kc.[SummaryText],
-    kc.[SyncStatus],
-    ROUND([heritage].[fn_CosineSimilarity](@VectorCauHoi, kc.[EmbeddingJson]), 4) AS [DiemGiongNhau_Cosine]
-FROM [heritage].[KnowledgeChunks] AS kc
-WHERE kc.[FamilyId] = @FamilyId
-  AND kc.[SyncStatus] = N'synced'
-ORDER BY [DiemGiongNhau_Cosine] DESC;
+EXEC [heritage].[usp_SemanticSearch]
+    @FamilyId        = @FamilyId,
+    @QueryVectorJson = @VectorCauHoi,
+    @TopK            = 3,
+    @MinScore        = 0.30;
+
+
+-- 4. KIỂM THỬ TUẦN 2: STORED PROCEDURE ĐƯỜNG ĐI GIA PHẢ (genealogy.usp_FindRelationshipPath)
+-- 4a. Quan hệ Ông nội (Cụ Nguyễn Văn Cẩn) -> Cháu nội (Nguyễn Văn Hùng)
+EXEC [genealogy].[usp_FindRelationshipPath]
+    @MemberAId = '44444444-4444-4444-4444-000000000001',
+    @MemberBId = '44444444-4444-4444-4444-000000000005';
+
+-- 4b. Quan hệ Anh em ruột (Nguyễn Văn Hùng <-> Nguyễn Thị Lan)
+EXEC [genealogy].[usp_FindRelationshipPath]
+    @MemberAId = '44444444-4444-4444-4444-000000000005',
+    @MemberBId = '44444444-4444-4444-4444-000000000006';
+
+-- 4c. Quan hệ Vợ chồng (Nguyễn Văn Trường <-> Trần Thị Mai)
+EXEC [genealogy].[usp_FindRelationshipPath]
+    @MemberAId = '44444444-4444-4444-4444-000000000003',
+    @MemberBId = '44444444-4444-4444-4444-000000000004';
+
+-- 4d. Quan hệ Bố chồng - Con dâu (Cụ Nguyễn Văn Cẩn <-> Trần Thị Mai)
+EXEC [genealogy].[usp_FindRelationshipPath]
+    @MemberAId = '44444444-4444-4444-4444-000000000001',
+    @MemberBId = '44444444-4444-4444-4444-000000000004';
+
+
+-- 5. KIỂM THỬ VIEW CÁC BÀI VIẾT/DI SẢN CHỜ ĐỒNG BỘ VECTOR
+SELECT * FROM [heritage].[vw_PendingKnowledgeSources];
 GO

@@ -99,13 +99,7 @@ BEGIN
             (SELECT 1 FROM heritage.vw_HeritageItems WHERE Id = @Id AND VersionToken = @ExpectedVersion)
             THROW 51409, N'Item changed. Reload before editing.', 1;
         EXEC heritage.usp_ValidateHeritageItem @Type, @Title, @Description, @Content, @MediaUrl;
-        -- TV5 owns synchronization; refuse edits of indexed sources until its hook exists.
-        IF OBJECT_ID(N'heritage.KnowledgeChunks', N'U') IS NOT NULL
-        BEGIN
-            IF EXISTS (SELECT 1 FROM heritage.KnowledgeChunks WITH (HOLDLOCK)
-                       WHERE SourceType=N'heritage' AND SourceId=@Id)
-                THROW 51410, N'AI knowledge references this item. Coordinate with TV5.', 1;
-        END;
+        
         UPDATE heritage.Items SET Type = @Type, Title = @Title, Description = @Description,
             Content = @Content, MediaUrl = @MediaUrl WHERE Id = @Id AND FamilyId = @FamilyId;
         INSERT INTO reports.AuditLog (UserId, Action)
@@ -142,13 +136,7 @@ BEGIN
         IF @ExpectedVersion IS NULL OR NOT EXISTS
             (SELECT 1 FROM heritage.vw_HeritageItems WHERE Id = @Id AND VersionToken = @ExpectedVersion)
             THROW 51409, N'Item changed. Reload before deleting.', 1;
-        -- KnowledgeChunks belongs to TV5. Do not edit it; refuse stale-source deletion.
-        IF OBJECT_ID(N'heritage.KnowledgeChunks', N'U') IS NOT NULL
-        BEGIN
-            IF EXISTS (SELECT 1 FROM heritage.KnowledgeChunks WITH (HOLDLOCK)
-                       WHERE SourceType = N'heritage' AND SourceId = @Id)
-                THROW 51410, N'AI knowledge references this item. Coordinate with TV5.', 1;
-        END;
+        
         DELETE FROM heritage.Items WHERE Id = @Id AND FamilyId = @FamilyId;
         INSERT INTO reports.AuditLog (UserId, Action)
         VALUES (@ActorUserId, CONCAT(N'heritage.item.deleted; id=', CONVERT(NVARCHAR(36), @Id)));

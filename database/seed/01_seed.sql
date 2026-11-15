@@ -107,6 +107,12 @@ BEGIN TRY
        3. Dọn dữ liệu mẫu cũ, theo thứ tự con trước cha
        ----------------------------------------------------------------- */
 
+    IF OBJECT_ID(N'community.Notifications', N'U') IS NOT NULL
+        DELETE FROM community.Notifications WHERE CAST(FamilyId AS CHAR(36)) LIKE '22222222-%';
+    IF OBJECT_ID(N'reports.AiChatMessages', N'U') IS NOT NULL
+        DELETE FROM reports.AiChatMessages WHERE CAST(FamilyId AS CHAR(36)) LIKE '22222222-%';
+    IF OBJECT_ID(N'heritage.KnowledgeChunks', N'U') IS NOT NULL
+        DELETE FROM heritage.KnowledgeChunks WHERE CAST(FamilyId AS CHAR(36)) LIKE '22222222-%';
     DELETE FROM heritage.Honors WHERE CAST(Id AS CHAR(36)) LIKE 'F0000006-%';
     DELETE FROM heritage.Items WHERE CAST(Id AS CHAR(36)) LIKE 'EEEEEEEE-%';
     DELETE FROM community.ReportedContents WHERE CAST(Id AS CHAR(36)) LIKE 'F0000007-%';
@@ -124,6 +130,10 @@ BEGIN TRY
     DELETE FROM community.Posts           WHERE CAST(Id AS CHAR(36)) LIKE '77777777-%';
     DELETE FROM genealogy.Marriages       WHERE CAST(Id AS CHAR(36)) LIKE '66666666-%';
     DELETE FROM genealogy.ParentChild     WHERE CAST(Id AS CHAR(36)) LIKE '55555555-%';
+    IF OBJECT_ID(N'genealogy.MemberClosure', N'U') IS NOT NULL
+        DELETE FROM genealogy.MemberClosure
+        WHERE CAST(AncestorId AS CHAR(36)) LIKE '44444444-%'
+           OR CAST(DescendantId AS CHAR(36)) LIKE '44444444-%';
     DELETE FROM core.MemberVerifications  WHERE CAST(Id AS CHAR(36)) LIKE 'DDDDDDDD-%';
     DELETE FROM genealogy.Educations      WHERE CAST(Id AS CHAR(36)) LIKE '45555555-%';
     DELETE FROM genealogy.WorkHistories   WHERE CAST(Id AS CHAR(36)) LIKE '46666666-%';
@@ -224,6 +234,24 @@ BEGIN TRY
         ('55555555-5555-5555-5555-000000000004', @mMai,    @mHung,   @t0),
         ('55555555-5555-5555-5555-000000000005', @mTruong, @mLan,    @t0),
         ('55555555-5555-5555-5555-000000000006', @mMai,    @mLan,    @t0);
+
+    IF OBJECT_ID(N'genealogy.MemberClosure', N'U') IS NOT NULL
+    BEGIN
+        ;WITH SeedTree AS
+        (
+            SELECT m.[Id] AS AncestorId, m.[Id] AS DescendantId, 0 AS Depth
+            FROM [genealogy].[Members] m
+            WHERE CAST(m.[Id] AS CHAR(36)) LIKE '44444444-%'
+            UNION ALL
+            SELECT t.AncestorId, pc.[ChildId], t.Depth + 1
+            FROM SeedTree t
+            INNER JOIN [genealogy].[ParentChild] pc ON pc.[ParentId] = t.DescendantId
+        )
+        INSERT INTO [genealogy].[MemberClosure] ([AncestorId], [DescendantId], [Depth])
+        SELECT AncestorId, DescendantId, MIN(Depth)
+        FROM SeedTree
+        GROUP BY AncestorId, DescendantId;
+    END;
 
     /* -----------------------------------------------------------------
        9. genealogy.Marriages
