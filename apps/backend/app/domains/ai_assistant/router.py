@@ -12,10 +12,14 @@ from app.domains.ai_assistant.schemas import (
     CosineTestResponse,
     EmbeddingTestRequest,
     EmbeddingTestResponse,
+    RecommendationRequest,
+    RecommendationResponse,
     RelationshipExplainRequest,
     RelationshipExplainResponse,
     SemanticSearchRequest,
     SemanticSearchResponse,
+    SummarizeRequest,
+    SummarizeResponse,
     SyncPendingRequest,
     SyncPendingResponse,
     UpsertChunkRequest,
@@ -25,7 +29,9 @@ from app.domains.ai_assistant.services import (
     chunk_and_index_source_service,
     embed_and_upsert_chunk_service,
     explain_relationship_service,
+    recommend_related_service,
     semantic_search_service,
+    summarize_content_service,
     sync_pending_knowledge_service,
     test_embedding_service,
     test_sql_cosine_service,
@@ -33,8 +39,10 @@ from app.domains.ai_assistant.services import (
 from app.domains.identity.models import User
 
 router = APIRouter(prefix="/ai", tags=["ai-assistant"])
+
 Admin = Annotated[User, Depends(require_role("admin"))]
 Manager = Annotated[User, Depends(require_role("admin", "family_head"))]
+Reader = Annotated[User, Depends(require_role("admin", "family_head", "member"))]
 
 
 @router.post("/test-embedding", response_model=EmbeddingTestResponse)
@@ -70,50 +78,58 @@ def upsert_chunk(
 )
 def chunk_and_index(
     payload: ChunkAndIndexRequest,
+    current_user: Manager,
     db: Annotated[Session, Depends(get_db)],
 ) -> ChunkAndIndexResponse:
-    """
-    Tuần 2 - Pipeline Cắt đoạn (Chunking):
-    Tự động cắt văn bản bài viết/di sản thành các đoạn ngắn 3-4 câu,
-    gọi Gemini lấy Vector và thực thi usp_UpsertKnowledgeChunk lưu vào SQL Server.
-    """
-    return chunk_and_index_source_service(payload, db)
+    """Tuần 2: Cắt đoạn 3-4 câu, lấy Vector Gemini và lưu vào SQL Server."""
+    return chunk_and_index_source_service(payload, db, actor=current_user)
 
 
 @router.post("/sync-pending", response_model=SyncPendingResponse)
 def sync_pending_knowledge(
     payload: SyncPendingRequest,
+    current_user: Manager,
     db: Annotated[Session, Depends(get_db)],
 ) -> SyncPendingResponse:
-    """
-    Tuần 2 - Đồng bộ tự động:
-    Quét toàn bộ bài viết (community.Posts của TV3) và tư liệu di sản (heritage.Items của TV4)
-    chưa có Vector hoặc đang 'pending', tự động cắt đoạn 3-4 câu, lấy Vector Gemini và lưu vào CSDL.
-    """
-    return sync_pending_knowledge_service(payload, db)
+    """Tuần 2: Quét và đồng bộ Vector cho bài viết/di sản đang ở trạng thái pending."""
+    return sync_pending_knowledge_service(payload, db, actor=current_user)
 
 
 @router.post("/semantic-search", response_model=SemanticSearchResponse)
 def semantic_search(
     payload: SemanticSearchRequest,
+    current_user: Reader,
     db: Annotated[Session, Depends(get_db)],
 ) -> SemanticSearchResponse:
-    """
-    Tuần 2 - API Semantic Search & RAG:
-    Nhận câu hỏi tìm kiếm của người dùng, chuyển thành Vector và gọi usp_SemanticSearch
-    để lấy Top-K đoạn văn bản tương đồng cao nhất (kèm câu trả lời tổng hợp từ Gemini).
-    """
-    return semantic_search_service(payload, db)
+    """Tuần 2: Tìm kiếm theo ngữ nghĩa bằng AI & Trợ lý kiến thức gia đình RAG."""
+    return semantic_search_service(payload, db, actor=current_user)
 
 
 @router.post("/explain-relationship", response_model=RelationshipExplainResponse)
 def explain_relationship(
     payload: RelationshipExplainRequest,
+    current_user: Reader,
     db: Annotated[Session, Depends(get_db)],
 ) -> RelationshipExplainResponse:
-    """
-    Tuần 2 - Giải thích quan hệ họ hàng (Prompt Engineering):
-    Truy vấn usp_FindRelationshipPath trên bảng bao đóng MemberClosure của TV2,
-    ghép dữ liệu vào Prompt Template và gọi Gemini sinh lời giải thích tự nhiên.
-    """
-    return explain_relationship_service(payload, db)
+    """Tuần 2: Giải thích mối quan hệ họ hàng và cách xưng hô bằng AI."""
+    return explain_relationship_service(payload, db, actor=current_user)
+
+
+@router.post("/summarize", response_model=SummarizeResponse)
+def summarize_content(
+    payload: SummarizeRequest,
+    current_user: Reader,
+    db: Annotated[Session, Depends(get_db)],
+) -> SummarizeResponse:
+    """Tuần 2: Tóm tắt nội dung tư liệu di sản hoặc bài viết cộng đồng bằng AI."""
+    return summarize_content_service(payload, db, actor=current_user)
+
+
+@router.post("/recommendations", response_model=RecommendationResponse)
+def recommend_related(
+    payload: RecommendationRequest,
+    current_user: Reader,
+    db: Annotated[Session, Depends(get_db)],
+) -> RecommendationResponse:
+    """Tuần 2: AI đề xuất các thành viên và tài nguyên di sản/bài viết liên quan."""
+    return recommend_related_service(payload, db, actor=current_user)

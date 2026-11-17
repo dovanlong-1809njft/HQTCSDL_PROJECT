@@ -20,10 +20,13 @@ from app.domains.ai_assistant.repository import (
     clear_stale_knowledge_chunks,
     compute_cosine_similarity,
     find_relationship_path,
+    get_source_document,
     get_source_family,
     list_pending_knowledge_sources,
+    recommend_related_family_members,
     save_ai_chat_message,
     semantic_search_chunks,
+    update_source_summary_in_chunks,
     upsert_knowledge_chunk,
 )
 from app.domains.ai_assistant.schemas import (
@@ -33,12 +36,17 @@ from app.domains.ai_assistant.schemas import (
     CosineTestResponse,
     EmbeddingTestResponse,
     IndexedChunkItem,
+    RecommendationRequest,
+    RecommendationResponse,
+    RecommendedMemberItem,
     RelationshipExplainRequest,
     RelationshipExplainResponse,
     RelationshipPathData,
     SemanticSearchHit,
     SemanticSearchRequest,
     SemanticSearchResponse,
+    SummarizeRequest,
+    SummarizeResponse,
     SyncedSourceSummary,
     SyncPendingRequest,
     SyncPendingResponse,
@@ -214,7 +222,7 @@ def embed_and_upsert_chunk_service(
         source_family = get_source_family(db, payload.source_type, payload.source_id)
         if source_family is None:
             raise HTTPException(404, "Không tìm thấy dữ liệu nguồn để lập chỉ mục.")
-        if str(source_family) != str(payload.family_id):
+        if str(source_family).lower() != str(payload.family_id).lower():
             raise HTTPException(403, "Dữ liệu nguồn không thuộc gia đình đã chọn.")
     vector = generate_embedding(payload.chunk_text)
     saved = upsert_knowledge_chunk(
@@ -235,12 +243,21 @@ def embed_and_upsert_chunk_service(
 
 
 # =====================================================================
-# Tuần 2 Services: Chunking Pipeline, Semantic Search & Kinship Prompting
+# Tuần 2 Services (Đã vá RBAC + Cô lập FamilyId)
 # =====================================================================
 def chunk_and_index_source_service(
     payload: ChunkAndIndexRequest,
     db: Session,
+    actor: User | None = None,
 ) -> ChunkAndIndexResponse:
+    if actor is not None:
+        require_family_access(db, actor, payload.family_id, manage=True)
+        source_family = get_source_family(db, payload.source_type, payload.source_id)
+        if source_family is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy dữ liệu nguồn để lập chỉ mục.")
+        if str(source_family).lower() != str(payload.family_id).lower():
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "Dữ liệu nguồn không thuộc gia đình đã chọn.")
+
     chunks = split_text_into_sentence_chunks(
         payload.content,
         sentences_per_chunk=payload.sentences_per_chunk,
@@ -298,7 +315,17 @@ def chunk_and_index_source_service(
 def sync_pending_knowledge_service(
     payload: SyncPendingRequest,
     db: Session,
+    actor: User | None = None,
 ) -> SyncPendingResponse:
+    if actor is not None:
+        if payload.family_id is not None:
+            require_family_access(db, actor, payload.family_id, manage=True)
+        elif actor.role != "admin":
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN,
+                "Chỉ quản trị viên hệ thống mới được đồng bộ toàn bộ các gia đình cùng lúc.",
+            )
+
     pending_sources = list_pending_knowledge_sources(
         db,
         family_id=payload.family_id,
@@ -318,6 +345,7 @@ def sync_pending_knowledge_service(
                 sentences_per_chunk=payload.sentences_per_chunk,
             ),
             db=db,
+            actor=None,
         )
         total_chunks += res.total_chunks
         summaries.append(
@@ -339,7 +367,11 @@ def sync_pending_knowledge_service(
 def semantic_search_service(
     payload: SemanticSearchRequest,
     db: Session,
+    actor: User | None = None,
 ) -> SemanticSearchResponse:
+    if actor is not None:
+        require_family_access(db, actor, payload.family_id, manage=False)
+
     query_vector = generate_embedding(payload.query)
     raw_rows = semantic_search_chunks(
         db,
@@ -388,12 +420,13 @@ def semantic_search_service(
         )
         ai_answer = generate_gemini_answer(prompt_used)
 
-        if payload.user_id is not None:
+        effective_user_id = actor.id if actor is not None else payload.user_id
+        if effective_user_id is not None:
             ref_ids = json.dumps([str(h.source_id) for h in hits])
             chat_message_id = save_ai_chat_message(
                 db,
                 family_id=payload.family_id,
-                user_id=payload.user_id,
+                user_id=effective_user_id,
                 query_type="semantic_search",
                 question=payload.query,
                 answer=ai_answer,
@@ -415,7 +448,20 @@ def semantic_search_service(
 def explain_relationship_service(
     payload: RelationshipExplainRequest,
     db: Session,
+    actor: User | None = None,
 ) -> RelationshipExplainResponse:
+    if actor is not None:
+        require_family_access(db, actor, payload.family_id, manage=False)
+        for mid in (payload.member_a_id, payload.member_b_id):
+            member_family = get_source_family(db, "member", mid)
+            if member_family is None:
+                raise HTTPException(status.HTTP_404_NOT_FOUND, "Thành viên không tồn tại trong gia phả.")
+            if str(member_family).lower() != str(payload.family_id).lower():
+                raise HTTPException(
+                    status.HTTP_403_FORBIDDEN,
+                    "Thành viên được chọn không thuộc gia đình hiện tại.",
+                )
+
     try:
         row = find_relationship_path(
             db,
@@ -484,12 +530,13 @@ def explain_relationship_service(
     ai_explanation = generate_gemini_answer(prompt_used)
 
     chat_message_id: UUID | None = None
-    if payload.user_id is not None:
+    effective_user_id = actor.id if actor is not None else payload.user_id
+    if effective_user_id is not None:
         refs = json.dumps([str(path_data.member_a_id), str(path_data.member_b_id)])
         chat_message_id = save_ai_chat_message(
             db,
             family_id=payload.family_id,
-            user_id=payload.user_id,
+            user_id=effective_user_id,
             query_type="kinship_explain",
             question=user_question,
             answer=ai_explanation,
@@ -501,4 +548,182 @@ def explain_relationship_service(
         ai_explanation=ai_explanation,
         prompt_used=prompt_used,
         chat_message_id=chat_message_id,
+    )
+
+
+def summarize_content_service(
+    payload: SummarizeRequest,
+    db: Session,
+    actor: User | None = None,
+) -> SummarizeResponse:
+    if actor is not None:
+        require_family_access(db, actor, payload.family_id, manage=False)
+
+    title = (payload.title or "").strip()
+    content = (payload.content or "").strip()
+
+    if not content:
+        if payload.source_type and payload.source_id:
+            try:
+                doc = get_source_document(
+                    db,
+                    family_id=payload.family_id,
+                    source_type=payload.source_type,
+                    source_id=payload.source_id,
+                )
+            except DBAPIError as exc:
+                db.rollback()
+                raise HTTPException(
+                    status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    "Loại nguồn tư liệu không hợp lệ.",
+                ) from exc
+
+            if doc is None:
+                raise HTTPException(
+                    status.HTTP_404_NOT_FOUND,
+                    "Không tìm thấy tư liệu hoặc bài viết cần tóm tắt trong gia đình này.",
+                )
+            title = title or str(doc.get("Title") or "Tư liệu gia đình")
+            content = str(doc.get("Content") or "").strip()
+        else:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                "Cần cung cấp nội dung văn bản (content) hoặc mã tư liệu (source_type + source_id).",
+            )
+
+    if not content:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "Tư liệu được chọn không có nội dung văn bản để tóm tắt.",
+        )
+
+    template = load_prompt_template("summarize_content.txt")
+    prompt = template.format(
+        title=title or "Tư liệu dòng họ",
+        content=content,
+        max_sentences=payload.max_sentences,
+    )
+    summary = generate_gemini_answer(prompt)
+
+    updated_chunks = 0
+    if payload.save_to_chunks and payload.source_type and payload.source_id:
+        updated_chunks = update_source_summary_in_chunks(
+            db,
+            family_id=payload.family_id,
+            source_type=payload.source_type,
+            source_id=payload.source_id,
+            summary_text=summary,
+        )
+
+    chat_message_id: UUID | None = None
+    if actor is not None:
+        refs = json.dumps([str(payload.source_id)]) if payload.source_id else None
+        chat_message_id = save_ai_chat_message(
+            db,
+            family_id=payload.family_id,
+            user_id=actor.id,
+            query_type="summarize",
+            question=f"Tóm tắt tư liệu: {title}",
+            answer=summary,
+            referenced_source_ids_json=refs,
+        )
+
+    return SummarizeResponse(
+        family_id=payload.family_id,
+        source_type=payload.source_type,
+        source_id=payload.source_id,
+        title=title or "Tư liệu dòng họ",
+        summary=summary,
+        updated_chunks=updated_chunks,
+        chat_message_id=chat_message_id,
+    )
+
+
+def recommend_related_service(
+    payload: RecommendationRequest,
+    db: Session,
+    actor: User | None = None,
+) -> RecommendationResponse:
+    if actor is not None:
+        require_family_access(db, actor, payload.family_id, manage=False)
+
+    try:
+        member_rows = recommend_related_family_members(
+            db,
+            family_id=payload.family_id,
+            anchor_member_id=payload.member_id,
+            top_k=payload.top_k,
+        )
+    except DBAPIError as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Không tìm thấy hồ sơ thành viên trong gia đình này.",
+        ) from exc
+
+    db_synthesized_query = (
+        str(member_rows[0].get("SynthesizedQuery") or "").strip()
+        if member_rows
+        else ""
+    )
+    synthesized_query = (
+        payload.topic_query.strip()
+        if payload.topic_query and payload.topic_query.strip()
+        else db_synthesized_query or "Truyền thống lịch sử, nghề nghiệp và sự kiện dòng họ"
+    )
+
+    related_members = [
+        RecommendedMemberItem(
+            member_id=UUID(str(m["MemberId"])),
+            full_name=str(m["FullName"]),
+            birth_date=m.get("BirthDate"),
+            location=m.get("Location"),
+            branch_name=m.get("BranchName"),
+            latest_position=m.get("LatestPosition"),
+            latest_company=m.get("LatestCompany"),
+            latest_institution=m.get("LatestInstitution"),
+            match_reason=str(m["MatchReason"]),
+        )
+        for m in member_rows
+    ]
+
+    query_vector = generate_embedding(synthesized_query)
+    raw_chunks = semantic_search_chunks(
+        db,
+        family_id=payload.family_id,
+        query_vector_json=json.dumps(query_vector),
+        top_k=payload.top_k,
+        min_score=payload.min_score,
+        source_type=None,
+    )
+    related_resources = [
+        SemanticSearchHit(
+            chunk_id=UUID(str(r["ChunkId"])),
+            family_id=UUID(str(r["FamilyId"])),
+            source_type=str(r["SourceType"]),
+            source_id=UUID(str(r["SourceId"])),
+            source_title=str(r.get("SourceTitle") or ""),
+            chunk_index=int(r["ChunkIndex"]),
+            chunk_text=str(r["ChunkText"]),
+            summary_text=r.get("SummaryText"),
+            similarity_score=float(r["SimilarityScore"]),
+            updated_at=r.get("UpdatedAt"),
+        )
+        for r in raw_chunks
+    ]
+
+    member_names = ", ".join(m.full_name for m in related_members[:3]) or "chưa có"
+    resource_titles = ", ".join(dict.fromkeys(r.source_title for r in related_resources)) or "chưa có"
+    ai_note = (
+        f"Kết quả từ Stored Procedure đề xuất kết nối với các thành viên ({member_names}) "
+        f"và các tư liệu tương đồng ngữ nghĩa ({resource_titles})."
+    )
+
+    return RecommendationResponse(
+        family_id=payload.family_id,
+        anchor_member_id=payload.member_id,
+        synthesized_query=synthesized_query,
+        related_members=related_members,
+        related_resources=related_resources,
+        ai_recommendation_note=ai_note,
     )
