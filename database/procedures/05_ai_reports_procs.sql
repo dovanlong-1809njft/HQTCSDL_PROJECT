@@ -576,3 +576,187 @@ BEGIN
     SELECT [Id] AS [MessageId], [CreatedAt] FROM @Inserted;
 END;
 GO
+
+
+/* =====================================================================
+   1. SP lấy nội dung gốc của Tư liệu / Bài viết và cập nhật Tóm tắt AI
+   ===================================================================== */
+CREATE OR ALTER PROCEDURE [heritage].[usp_GetKnowledgeSourceContent]
+    @FamilyId   UNIQUEIDENTIFIER,
+    @SourceType NVARCHAR(30),
+    @SourceId   UNIQUEIDENTIFIER
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF @SourceType = N'heritage'
+    BEGIN
+        SELECT
+            i.[Id] AS SourceId,
+            i.[FamilyId],
+            N'heritage' AS SourceType,
+            i.[Title],
+            CONCAT_WS(N'. ', NULLIF(i.[Description], N''), NULLIF(i.[Content], N'')) AS Content
+        FROM [heritage].[Items] i
+        WHERE i.[Id] = @SourceId AND i.[FamilyId] = @FamilyId;
+    END
+    ELSE IF @SourceType = N'post'
+    BEGIN
+        SELECT
+            p.[Id] AS SourceId,
+            p.[FamilyId],
+            N'post' AS SourceType,
+            N'Bài viết cộng đồng' AS Title,
+            p.[Content] AS Content
+        FROM [community].[Posts] p
+        WHERE p.[Id] = @SourceId AND p.[FamilyId] = @FamilyId;
+    END
+    ELSE
+    BEGIN
+        THROW 51422, N'Loại nguồn tư liệu không hợp lệ (chỉ hỗ trợ heritage hoặc post).', 1;
+    END
+END;
+GO
+
+CREATE OR ALTER PROCEDURE [heritage].[usp_UpdateKnowledgeSummary]
+    @FamilyId    UNIQUEIDENTIFIER,
+    @SourceType  NVARCHAR(30),
+    @SourceId    UNIQUEIDENTIFIER,
+    @SummaryText NVARCHAR(1000)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    UPDATE [heritage].[KnowledgeChunks]
+    SET [SummaryText] = @SummaryText,
+        [UpdatedAt]   = SYSUTCDATETIME()
+    WHERE [FamilyId]   = @FamilyId
+      AND [SourceType] = @SourceType
+      AND [SourceId]   = @SourceId
+      AND [ChunkIndex] = 0;
+
+    SELECT @@ROWCOUNT AS UpdatedChunkCount;
+END;
+GO
+
+/* =====================================================================
+   2. SP Đề xuất thành viên liên quan (Kết hợp MemberClosure, Chi họ,
+      Nghề nghiệp & Học vấn ngay dưới SQL Server)
+   ===================================================================== */
+CREATE OR ALTER PROCEDURE [genealogy].[usp_RecommendRelatedMembers]
+    @FamilyId       UNIQUEIDENTIFIER,
+    @AnchorMemberId UNIQUEIDENTIFIER = NULL,
+    @TopK           INT = 4
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @BranchId    UNIQUEIDENTIFIER = NULL;
+    DECLARE @Location    NVARCHAR(300)    = NULL;
+    DECLARE @BranchName  NVARCHAR(200)    = NULL;
+    DECLARE @Occupation  NVARCHAR(200)    = NULL;
+    DECLARE @Institution NVARCHAR(200)    = NULL;
+
+    IF @AnchorMemberId IS NOT NULL
+    BEGIN
+        SELECT
+            @BranchId   = m.[BranchId],
+            @Location   = m.[Location],
+            @BranchName = b.[Name],
+            @Occupation = (
+                SELECT TOP 1 w.[Position]
+                FROM [genealogy].[WorkHistories] w
+                WHERE w.[MemberId] = m.[Id]
+                ORDER BY w.[StartDate] DESC, w.[Id]
+            ),
+            @Institution = (
+                SELECT TOP 1 e.[Institution]
+                FROM [genealogy].[Educations] e
+                WHERE e.[MemberId] = m.[Id]
+                ORDER BY e.[StartDate] DESC, e.[Id]
+            )
+        FROM [genealogy].[Members] m
+        LEFT JOIN [core].[Branches] b ON b.[Id] = m.[BranchId]
+        WHERE m.[Id] = @AnchorMemberId AND m.[FamilyId] = @FamilyId;
+
+        IF @BranchId IS NULL AND @Location IS NULL AND NOT EXISTS (
+            SELECT 1 FROM [genealogy].[Members]
+            WHERE [Id] = @AnchorMemberId AND [FamilyId] = @FamilyId
+        )
+        BEGIN
+            THROW 51404, N'Không tìm thấy hồ sơ thành viên trong gia đình này.', 1;
+        END
+    END
+
+    DECLARE @SynthesizedQuery NVARCHAR(500) = CONCAT_WS(
+        N' ',
+        NULLIF(@BranchName, N''),
+        NULLIF(@Occupation, N''),
+        NULLIF(@Institution, N''),
+        NULLIF(@Location, N'')
+    );
+
+    IF LEN(LTRIM(RTRIM(@SynthesizedQuery))) = 0
+        SET @SynthesizedQuery = N'Truyền thống lịch sử, nghề nghiệp và sự kiện dòng họ';
+
+    ;WITH KinshipDistance AS (
+        SELECT
+            other_m.[Id] AS RelatedMemberId,
+            MIN(mc1.[Depth] + mc2.[Depth]) AS GenerationDistance
+        FROM [genealogy].[MemberClosure] mc1
+        INNER JOIN [genealogy].[MemberClosure] mc2
+            ON mc1.[AncestorId] = mc2.[AncestorId]
+        INNER JOIN [genealogy].[Members] other_m
+            ON other_m.[Id] = mc2.[DescendantId]
+        WHERE @AnchorMemberId IS NOT NULL
+          AND mc1.[DescendantId] = @AnchorMemberId
+          AND mc2.[DescendantId] <> @AnchorMemberId
+          AND other_m.[FamilyId] = @FamilyId
+        GROUP BY other_m.[Id]
+    )
+    SELECT TOP (@TopK)
+        m.[Id]          AS MemberId,
+        m.[FullName],
+        m.[BirthDate],
+        m.[Location],
+        b.[Name]        AS BranchName,
+        w.[Position]    AS LatestPosition,
+        w.[Company]     AS LatestCompany,
+        e.[Institution] AS LatestInstitution,
+        kd.[GenerationDistance],
+        @SynthesizedQuery AS SynthesizedQuery,
+        CASE
+            WHEN kd.[GenerationDistance] IS NOT NULL AND kd.[GenerationDistance] <= 2
+                THEN CONCAT(N'Quan hệ huyết thống gần (cách ', kd.[GenerationDistance], N' đời trên cây gia phả)')
+            WHEN @BranchId IS NOT NULL AND m.[BranchId] = @BranchId AND @Location IS NOT NULL AND m.[Location] = @Location
+                THEN N'Cùng chi họ và cùng khu vực sinh sống'
+            WHEN @BranchId IS NOT NULL AND m.[BranchId] = @BranchId
+                THEN CONCAT(N'Cùng thuộc ', b.[Name])
+            WHEN @Location IS NOT NULL AND m.[Location] = @Location
+                THEN CONCAT(N'Cùng khu vực sinh sống (', m.[Location], N')')
+            ELSE N'Thành viên tiêu biểu trong dòng họ'
+        END AS MatchReason
+    FROM [genealogy].[Members] m
+    LEFT JOIN [core].[Branches] b ON b.[Id] = m.[BranchId]
+    LEFT JOIN KinshipDistance kd ON kd.[RelatedMemberId] = m.[Id]
+    OUTER APPLY (
+        SELECT TOP 1 [Position], [Company]
+        FROM [genealogy].[WorkHistories]
+        WHERE [MemberId] = m.[Id]
+        ORDER BY [StartDate] DESC, [Id]
+    ) w
+    OUTER APPLY (
+        SELECT TOP 1 [Institution]
+        FROM [genealogy].[Educations]
+        WHERE [MemberId] = m.[Id]
+        ORDER BY [StartDate] DESC, [Id]
+    ) e
+    WHERE m.[FamilyId] = @FamilyId
+      AND (@AnchorMemberId IS NULL OR m.[Id] <> @AnchorMemberId)
+    ORDER BY
+        CASE WHEN kd.[GenerationDistance] IS NOT NULL THEN kd.[GenerationDistance] ELSE 999 END ASC,
+        CASE WHEN @BranchId IS NOT NULL AND m.[BranchId] = @BranchId THEN 0 ELSE 1 END ASC,
+        CASE WHEN @Location IS NOT NULL AND m.[Location] = @Location THEN 0 ELSE 1 END ASC,
+        m.[BirthDate] ASC;
+END;
+GO

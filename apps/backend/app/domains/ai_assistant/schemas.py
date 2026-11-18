@@ -5,15 +5,8 @@ from uuid import UUID
 from pydantic import BaseModel, Field
 
 
-# =====================================================================
-# Tuần 1: Schemas kiểm thử Embedding, Cosine Similarity & Upsert đơn lẻ
-# =====================================================================
 class EmbeddingTestRequest(BaseModel):
-    text: str = Field(
-        default="Cụ tổ Nguyễn Văn Cẩn truyền nghề mộc cho con cháu tại Thạch Thất.",
-        min_length=1,
-        max_length=2000,
-    )
+    text: str = Field(..., min_length=1, max_length=2000)
 
 
 class EmbeddingTestResponse(BaseModel):
@@ -24,16 +17,8 @@ class EmbeddingTestResponse(BaseModel):
 
 
 class CosineTestRequest(BaseModel):
-    text_a: str = Field(
-        default="Dòng họ mình làm nghề truyền thống gì?",
-        min_length=1,
-        max_length=2000,
-    )
-    text_b: str = Field(
-        default="Nghề mộc theo họ Nguyễn Văn từ đời cụ tổ ở Thạch Thất.",
-        min_length=1,
-        max_length=2000,
-    )
+    text_a: str = Field(..., min_length=1, max_length=2000)
+    text_b: str = Field(..., min_length=1, max_length=2000)
 
 
 class CosineTestResponse(BaseModel):
@@ -44,15 +29,11 @@ class CosineTestResponse(BaseModel):
 
 
 class UpsertChunkRequest(BaseModel):
-    family_id: UUID = Field(default=UUID("22222222-2222-2222-2222-000000000001"))
-    source_type: Literal["post", "heritage", "member"] = "heritage"
-    source_id: UUID = Field(default=UUID("eeeeeeee-eeee-eeee-eeee-000000000004"))
+    family_id: UUID
+    source_type: Literal["post", "heritage", "member"]
+    source_id: UUID
     chunk_index: int = Field(default=0, ge=0)
-    chunk_text: str = Field(
-        default="Nghề mộc theo họ Nguyễn Văn từ đời cụ tổ. Cụ Cẩn học nghề năm mười bốn tuổi, sau truyền cho con cháu trong chi trưởng.",
-        min_length=1,
-        max_length=2000,
-    )
+    chunk_text: str = Field(..., min_length=1, max_length=2000)
     summary_text: str | None = Field(default=None, max_length=1000)
 
 
@@ -62,28 +43,12 @@ class UpsertChunkResponse(BaseModel):
     dimensions: int
 
 
-# =====================================================================
-# Tuần 2 - Phần 1: Pipeline Cắt đoạn (Chunking 3-4 câu) & Vector hóa
-# =====================================================================
 class ChunkAndIndexRequest(BaseModel):
-    family_id: UUID = Field(default=UUID("22222222-2222-2222-2222-000000000001"))
-    source_type: Literal["post", "heritage", "member"] = "heritage"
-    source_id: UUID = Field(default=UUID("eeeeeeee-eeee-eeee-eeee-000000000003"))
-    title: str | None = Field(
-        default="Chuyện cụ Cẩn dựng nhà thờ họ",
-        max_length=300,
-    )
-    content: str = Field(
-        default=(
-            "Năm 1975 cụ Cẩn trở về làng, góp gỗ và công của cả chi trưởng lẫn chi thứ "
-            "để dựng lại nhà thờ họ trên nền cũ. Công việc kéo dài hai mùa, tới giỗ tổ "
-            "năm 1977 mới xong phần mái. Các cột chính được chạm khắc tinh xảo bởi chính "
-            "tay các nghệ nhân trong dòng họ. Từ đó nhà thờ trở thành nơi hội tụ con cháu "
-            "mỗi dịp giỗ tổ tháng Ba âm lịch."
-        ),
-        min_length=1,
-        max_length=20000,
-    )
+    family_id: UUID
+    source_type: Literal["post", "heritage", "member"]
+    source_id: UUID
+    title: str | None = Field(default=None, max_length=300)
+    content: str = Field(..., min_length=1, max_length=20000)
     sentences_per_chunk: int = Field(default=3, ge=1, le=10)
     summary_text: str | None = Field(default=None, max_length=1000)
 
@@ -106,7 +71,7 @@ class ChunkAndIndexResponse(BaseModel):
 
 
 class SyncPendingRequest(BaseModel):
-    family_id: UUID | None = Field(default=UUID("22222222-2222-2222-2222-000000000001"))
+    family_id: UUID | None = None
     sentences_per_chunk: int = Field(default=3, ge=1, le=10)
     limit: int = Field(default=20, ge=1, le=100)
 
@@ -124,24 +89,14 @@ class SyncPendingResponse(BaseModel):
     items: list[SyncedSourceSummary]
 
 
-# =====================================================================
-# Tuần 2 - Phần 2 & 3: API Semantic Search (usp_SemanticSearch + RAG)
-# =====================================================================
 class SemanticSearchRequest(BaseModel):
-    family_id: UUID = Field(default=UUID("22222222-2222-2222-2222-000000000001"))
-    query: str = Field(
-        default="Dòng họ Nguyễn Văn có nghề truyền thống gì và nhà thờ họ được dựng năm nào?",
-        min_length=1,
-        max_length=2000,
-    )
+    family_id: UUID
+    query: str = Field(..., min_length=1, max_length=2000)
     top_k: int = Field(default=3, ge=1, le=10)
     min_score: float = Field(default=0.30, ge=-1.0, le=1.0)
-    source_type: Literal["post", "heritage", "member"] | None = Field(default=None)
-    generate_answer: bool = Field(
-        default=True,
-        description="Nếu True, ghép Top-K đoạn văn vào Prompt và gọi Gemini trả lời tự nhiên.",
-    )
-    user_id: UUID | None = Field(default=UUID("11111111-1111-1111-1111-000000000001"))
+    source_type: Literal["post", "heritage", "member"] | None = None
+    generate_answer: bool = True
+    user_id: UUID | None = None
 
 
 class SemanticSearchHit(BaseModel):
@@ -168,24 +123,12 @@ class SemanticSearchResponse(BaseModel):
     chat_message_id: UUID | None = None
 
 
-# =====================================================================
-# Tuần 2 - Phần 4: Giải thích quan hệ họ hàng (usp_FindRelationshipPath)
-# =====================================================================
 class RelationshipExplainRequest(BaseModel):
-    family_id: UUID = Field(default=UUID("22222222-2222-2222-2222-000000000001"))
-    member_a_id: UUID = Field(
-        default=UUID("44444444-4444-4444-4444-000000000001"),
-        description="Mặc định: Cụ Nguyễn Văn Cẩn (1938)",
-    )
-    member_b_id: UUID = Field(
-        default=UUID("44444444-4444-4444-4444-000000000005"),
-        description="Mặc định: Cháu Nguyễn Văn Hùng (1995)",
-    )
-    question: str | None = Field(
-        default="Hãy giải thích mối quan hệ họ hàng và cách xưng hô giữa hai thành viên này.",
-        max_length=1000,
-    )
-    user_id: UUID | None = Field(default=UUID("11111111-1111-1111-1111-000000000001"))
+    family_id: UUID
+    member_a_id: UUID
+    member_b_id: UUID
+    question: str | None = Field(default=None, max_length=1000)
+    user_id: UUID | None = None
 
 
 class RelationshipPathData(BaseModel):
@@ -213,3 +156,52 @@ class RelationshipExplainResponse(BaseModel):
     ai_explanation: str
     prompt_used: str
     chat_message_id: UUID | None = None
+
+
+class SummarizeRequest(BaseModel):
+    family_id: UUID
+    source_type: Literal["post", "heritage"] | None = None
+    source_id: UUID | None = None
+    title: str | None = Field(default=None, max_length=300)
+    content: str | None = Field(default=None, max_length=20000)
+    max_sentences: int = Field(default=3, ge=1, le=10)
+    save_to_chunks: bool = True
+
+
+class SummarizeResponse(BaseModel):
+    family_id: UUID
+    source_type: str | None = None
+    source_id: UUID | None = None
+    title: str
+    summary: str
+    updated_chunks: int = 0
+    chat_message_id: UUID | None = None
+
+
+class RecommendationRequest(BaseModel):
+    family_id: UUID
+    member_id: UUID | None = None
+    topic_query: str | None = Field(default=None, max_length=500)
+    top_k: int = Field(default=4, ge=1, le=10)
+    min_score: float = Field(default=0.25, ge=-1.0, le=1.0)
+
+
+class RecommendedMemberItem(BaseModel):
+    member_id: UUID
+    full_name: str
+    birth_date: date | None = None
+    location: str | None = None
+    branch_name: str | None = None
+    latest_position: str | None = None
+    latest_company: str | None = None
+    latest_institution: str | None = None
+    match_reason: str
+
+
+class RecommendationResponse(BaseModel):
+    family_id: UUID
+    anchor_member_id: UUID | None = None
+    synthesized_query: str
+    related_members: list[RecommendedMemberItem]
+    related_resources: list[SemanticSearchHit]
+    ai_recommendation_note: str | None = None

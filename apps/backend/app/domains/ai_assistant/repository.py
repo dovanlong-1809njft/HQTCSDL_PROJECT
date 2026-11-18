@@ -13,8 +13,12 @@ def compute_cosine_similarity(db: Session, vec_a_json: str, vec_b_json: str) -> 
 
 
 def get_source_family(db: Session, source_type: str, source_id: UUID):
-    tables = {"post": "community.Posts", "heritage": "heritage.Items", "member": "genealogy.Members"}
-    # Keep the source alive until its index write commits.
+    """Kiểm tra FamilyId của bản ghi nguồn (post, heritage, member) kèm HOLDLOCK."""
+    tables = {
+        "post": "community.Posts",
+        "heritage": "heritage.Items",
+        "member": "genealogy.Members",
+    }
     return db.execute(
         text(f"SELECT FamilyId FROM {tables[source_type]} WITH (HOLDLOCK) WHERE Id=:source_id"),
         {"source_id": str(source_id)},
@@ -241,3 +245,100 @@ def save_ai_chat_message(
     except Exception:
         db.rollback()
         return None
+
+
+def get_source_document(
+    db: Session,
+    *,
+    family_id: UUID,
+    source_type: str,
+    source_id: UUID,
+) -> dict[str, Any] | None:
+    """Gọi trực tiếp Stored Procedure heritage.usp_GetKnowledgeSourceContent dưới SQL Server."""
+    stmt = text(
+        """
+        EXEC heritage.usp_GetKnowledgeSourceContent
+            @FamilyId = :family_id,
+            @SourceType = :source_type,
+            @SourceId = :source_id
+        """
+    )
+    row = (
+        db.execute(
+            stmt,
+            {
+                "family_id": str(family_id),
+                "source_type": source_type,
+                "source_id": str(source_id),
+            },
+        )
+        .mappings()
+        .one_or_none()
+    )
+    return dict(row) if row is not None else None
+
+
+def update_source_summary_in_chunks(
+    db: Session,
+    *,
+    family_id: UUID,
+    source_type: str,
+    source_id: UUID,
+    summary_text: str,
+) -> int:
+    """Gọi trực tiếp Stored Procedure heritage.usp_UpdateKnowledgeSummary dưới SQL Server."""
+    stmt = text(
+        """
+        EXEC heritage.usp_UpdateKnowledgeSummary
+            @FamilyId = :family_id,
+            @SourceType = :source_type,
+            @SourceId = :source_id,
+            @SummaryText = :summary_text
+        """
+    )
+    row = (
+        db.execute(
+            stmt,
+            {
+                "family_id": str(family_id),
+                "source_type": source_type,
+                "source_id": str(source_id),
+                "summary_text": summary_text[:1000],
+            },
+        )
+        .mappings()
+        .one_or_none()
+    )
+    db.commit()
+    return int(row["UpdatedChunkCount"] or 0) if row else 0
+
+
+def recommend_related_family_members(
+    db: Session,
+    *,
+    family_id: UUID,
+    anchor_member_id: UUID | None = None,
+    top_k: int = 4,
+) -> list[dict[str, Any]]:
+    """Gọi trực tiếp Stored Procedure genealogy.usp_RecommendRelatedMembers dưới SQL Server."""
+    stmt = text(
+        """
+        EXEC genealogy.usp_RecommendRelatedMembers
+            @FamilyId = :family_id,
+            @AnchorMemberId = :anchor_member_id,
+            @TopK = :top_k
+        """
+    )
+    rows = (
+        db.execute(
+            stmt,
+            {
+                "family_id": str(family_id),
+                "anchor_member_id": str(anchor_member_id) if anchor_member_id else None,
+                "top_k": top_k,
+            },
+        )
+        .mappings()
+        .all()
+    )
+    return [dict(r) for r in rows]
