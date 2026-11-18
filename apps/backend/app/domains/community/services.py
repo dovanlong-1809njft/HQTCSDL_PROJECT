@@ -43,11 +43,14 @@ def _to_post_response(row) -> PostResponse:
         media_urls=[item["url"] for item in json.loads(row["MediaJson"] or "[]")] if row.get("MediaJson") is not None else _split_media(row["MediaUrls"]),
         is_announcement=bool(row.get("IsAnnouncement",False)),
         my_reaction=row.get("MyReaction"),
+        reaction_counts={item["type"]:int(item["total"]) for item in json.loads(row.get("ReactionCounts") or "[]")},
     )
 
 
 def create_post_service(payload: PostCreateRequest, actor: User, db: Session) -> PostResponse:
     require_family_access(db, actor, payload.family_id,manage=payload.is_announcement)
+    from app.domains.community.uploads import validate_media
+    validate_media(db, actor, payload.family_id, payload.media)
     media_json = (
         json.dumps([item.model_dump() for item in payload.media], ensure_ascii=False)
         if payload.media
@@ -117,13 +120,16 @@ def add_comment_service(
 
 def list_comments_service(post_id: UUID, page: PageParams, actor: User, db: Session) -> list[CommentResponse]:
     _accessible_post(post_id, actor, db)
-    rows = repository.list_comments(db, post_id=post_id, offset=page.offset, limit=page.page_size)
+    rows = repository.list_comments(db, post_id=post_id, offset=page.offset, limit=page.page_size,actor_id=actor.id)
     return [
         CommentResponse(
             id=row["Id"],
             post_id=row["PostId"],
             user_id=row["UserId"],
             author_name=row["AuthorName"],
+            my_reaction=row.get("MyReaction"),
+            reaction_count=int(row.get("ReactionCount") or 0),
+            reaction_counts={item["type"]:int(item["total"]) for item in json.loads(row.get("ReactionCounts") or "[]")},
             content=row["Content"],
             created_at=row["CreatedAt"],
         )
@@ -148,7 +154,19 @@ def upsert_reaction_service(
         user_id=actor.id,
         type=payload.type,
         reaction_count=repository.count_reactions(db, post_id=post_id),
+        reaction_counts=repository.reaction_counts(db, post_id),
     )
+
+
+def set_comment_reaction_service(comment_id: UUID, payload: ReactionRequest, actor: User, db: Session):
+    from app.domains.community.schemas import CommentReactionResponse
+    from app.domains.genealogy.services import run
+    family_id = repository.get_report_family(db, "comment", comment_id)
+    if family_id is None:
+        raise NotFoundError("Bình luận không tồn tại.")
+    require_family_access(db, actor, family_id)
+    counts = run(db, lambda: repository.set_comment_reaction(db, comment_id, actor.id, payload.type), write=True)
+    return CommentReactionResponse(comment_id=comment_id,type=payload.type,reaction_count=sum(counts.values()),reaction_counts=counts)
 
 
 def create_report_service(

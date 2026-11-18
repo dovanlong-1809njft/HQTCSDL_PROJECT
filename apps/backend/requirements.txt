@@ -7,3 +7,5 @@ PyJWT
 email-validator
 python-dotenv
 google-genai
+python-multipart>=0.0.20
+Pillow>=11.3

@@ -28,6 +28,9 @@ services:
       GEMINI_EMBEDDING_MODEL: ${GEMINI_EMBEDDING_MODEL:-gemini-embedding-001}
       GEMINI_EMBEDDING_DIM: ${GEMINI_EMBEDDING_DIM:-256}
       GEMINI_CHAT_MODEL: ${GEMINI_CHAT_MODEL:-gemini-2.5-flash}
+      MEDIA_ROOT: /var/lib/familyconnect/media
+    volumes:
+      - media_data:/var/lib/familyconnect/media
     ports:
       - "${BACKEND_PORT:-8000}:8000"
     depends_on:
@@ -78,3 +81,4 @@ services:
 
 volumes:
   sqlserver_data:
+  media_data:
