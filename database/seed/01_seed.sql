@@ -149,10 +149,10 @@ BEGIN TRY
 
     INSERT INTO core.Users (UserId, Email, PasswordHash, FullName, Role, IsActive, CreatedAt)
     VALUES
-        (@uTruong, N'truong@example.invalid', N'SEED-ONLY-KHONG-PHAI-HASH-THAT', N'Nguyễn Văn Trường', N'admin',  1, @t0),
-        (@uMai,    N'mai@example.invalid',    N'SEED-ONLY-KHONG-PHAI-HASH-THAT', N'Trần Thị Mai',      N'member', 1, DATEADD(DAY, 1, @t0)),
-        (@uHung,   N'hung@example.invalid',   N'SEED-ONLY-KHONG-PHAI-HASH-THAT', N'Nguyễn Văn Hùng',   N'member', 1, DATEADD(DAY, 2, @t0)),
-        (@uLan,    N'lan@example.invalid',    N'SEED-ONLY-KHONG-PHAI-HASH-THAT', N'Nguyễn Thị Lan',    N'member', 0, DATEADD(DAY, 3, @t0));
+        (@uTruong, N'truong@example.invalid', N'$argon2id$v=19$m=65536,t=3,p=4$WeD09VvW6vg2z/kD5Bwwsg$9qRM7Pk9sGVFUg4vmhTfsAVsG6kePMC8sfpfsUuJw9I', N'Nguyễn Văn Trường', N'admin',  1, @t0),
+        (@uMai,    N'mai@example.invalid',    N'$argon2id$v=19$m=65536,t=3,p=4$WeD09VvW6vg2z/kD5Bwwsg$9qRM7Pk9sGVFUg4vmhTfsAVsG6kePMC8sfpfsUuJw9I', N'Trần Thị Mai',      N'member', 1, DATEADD(DAY, 1, @t0)),
+        (@uHung,   N'hung@example.invalid',   N'$argon2id$v=19$m=65536,t=3,p=4$WeD09VvW6vg2z/kD5Bwwsg$9qRM7Pk9sGVFUg4vmhTfsAVsG6kePMC8sfpfsUuJw9I', N'Nguyễn Văn Hùng',   N'member', 1, DATEADD(DAY, 2, @t0)),
+        (@uLan,    N'lan@example.invalid',    N'$argon2id$v=19$m=65536,t=3,p=4$WeD09VvW6vg2z/kD5Bwwsg$9qRM7Pk9sGVFUg4vmhTfsAVsG6kePMC8sfpfsUuJw9I', N'Nguyễn Thị Lan',    N'member', 0, DATEADD(DAY, 3, @t0));
 
     /* -----------------------------------------------------------------
        5. core.Families và core.Branches

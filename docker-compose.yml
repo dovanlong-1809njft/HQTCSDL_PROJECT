@@ -39,6 +39,7 @@ services:
 
   db-migrate:
     image: familyconnect-backend:local
+    pull_policy: never
     environment:
       MSSQL_HOST: db
       MSSQL_PORT: 1433

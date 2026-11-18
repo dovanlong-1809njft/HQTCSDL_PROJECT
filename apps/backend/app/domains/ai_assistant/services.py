@@ -8,6 +8,7 @@ from google import genai
 from google.genai import types
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import Session
+import time
 
 from app.core.config import (
     GEMINI_API_KEY,
@@ -133,12 +134,21 @@ def split_text_into_sentence_chunks(
 
 
 def generate_embedding(text_content: str) -> list[float]:
-    """Gọi Google Gemini API để chuyển đoạn văn bản thành mảng số thực (Vector)."""
+    """Gọi Google Gemini API để chuyển 1 đoạn văn bản thành Vector."""
+    vectors = generate_embeddings_batch([text_content.strip()])
+    return vectors[0]
+
+
+def generate_embeddings_batch(texts: list[str]) -> list[list[float]]:
+    """Gửi toàn bộ danh sách các đoạn văn bản trong 1 lần gọi API duy nhất để tiết kiệm RPM."""
+    if not texts:
+        return []
     client = get_gemini_client()
+    cleaned_texts = [t.strip() for t in texts if t and t.strip()]
     try:
         response = client.models.embed_content(
             model=GEMINI_EMBEDDING_MODEL,
-            contents=text_content.strip(),
+            contents=cleaned_texts,
             config=types.EmbedContentConfig(
                 output_dimensionality=GEMINI_EMBEDDING_DIM,
             ),
@@ -149,42 +159,66 @@ def generate_embedding(text_content: str) -> list[float]:
             detail=f"Lỗi khi gọi Gemini Embedding API: {exc}",
         ) from exc
 
-    if not response.embeddings or not response.embeddings[0].values:
+    if not response.embeddings or len(response.embeddings) != len(cleaned_texts):
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Gemini không trả về dữ liệu Vector.",
+            detail="Gemini không trả về đủ dữ liệu Vector.",
         )
-    return [round(float(v), 6) for v in response.embeddings[0].values]
+    return [[round(float(v), 6) for v in emb.values] for emb in response.embeddings]
 
-
-def generate_embeddings_batch(texts: list[str]) -> list[list[float]]:
-    """Gọi Google Gemini API để lấy Vector nhúng cho một danh sách các đoạn văn bản (Chunks)."""
-    if not texts:
-        return []
-    return [generate_embedding(t) for t in texts]
-
-
-def generate_gemini_answer(prompt: str) -> str:
-    """Gọi mô hình ngôn ngữ Gemini (gemini-2.5-flash) để sinh câu trả lời tiếng Việt tự nhiên."""
+def generate_gemini_answer(prompt: str, fallback_text: str | None = None) -> str:
+    """
+    Gọi Gemini với thinking_budget=0 (tắt suy nghĩ ngầm gây tốn token và cụt câu),
+    tự động retry khi gặp lỗi 503 quá tải từ Google.
+    """
     client = get_gemini_client()
-    try:
-        response = client.models.generate_content(
-            model=GEMINI_CHAT_MODEL,
-            contents=prompt,
-        )
-    except Exception as exc:
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"Lỗi khi gọi Gemini Chat API ({GEMINI_CHAT_MODEL}): {exc}",
-        ) from exc
 
-    answer = (response.text or "").strip()
-    if not answer:
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Gemini không trả về nội dung câu trả lời.",
+    # Tắt thinking_budget để toàn bộ token dành cho câu trả lời tiếng Việt và phản hồi nhanh hơn
+    try:
+        gen_config = types.GenerateContentConfig(
+            max_output_tokens=1024,
+            temperature=0.3,
+            thinking_config=types.ThinkingConfig(thinking_budget=0),
         )
-    return answer
+    except Exception:
+        gen_config = types.GenerateContentConfig(
+            max_output_tokens=2048,
+            temperature=0.3,
+        )
+
+    last_exc: Exception | None = None
+    for attempt in range(3):
+        try:
+            response = client.models.generate_content(
+                model=GEMINI_CHAT_MODEL,
+                contents=prompt,
+                config=gen_config,
+            )
+            answer = (response.text or "").strip()
+            if answer:
+                return answer
+        except Exception as exc:
+            last_exc = exc
+            err_msg = str(exc)
+            # Nếu máy chủ Google báo 503 UNAVAILABLE (quá tải tạm thời), đợi 1.5s rồi thử lại
+            if ("503" in err_msg or "UNAVAILABLE" in err_msg) and attempt < 2:
+                time.sleep(1.5 * (attempt + 1))
+                continue
+            break
+
+    err_str = str(last_exc) if last_exc else ""
+    if any(k in err_str for k in ("503", "UNAVAILABLE", "429", "RESOURCE_EXHAUSTED")):
+        if fallback_text:
+            return fallback_text
+        return (
+            "Máy chủ Google Gemini hiện đang quá tải tạm thời (503/429). "
+            "Tuy nhiên dữ liệu truy xuất từ SQL Server ở bên dưới vẫn được đảm bảo chính xác."
+        )
+
+    raise HTTPException(
+        status_code=status.HTTP_502_BAD_GATEWAY,
+        detail=f"Lỗi khi gọi Gemini Chat API ({GEMINI_CHAT_MODEL}): {last_exc}",
+    ) from last_exc
 
 
 # =====================================================================
@@ -527,7 +561,14 @@ def explain_relationship_service(
         user_question=user_question,
     )
 
-    ai_explanation = generate_gemini_answer(prompt_used)
+    sql_fallback = (
+        f"Theo dữ liệu Bảng bao đóng từ SQL Server:\n"
+        f"- Mối quan hệ giữa {path_data.member_a_name} và {path_data.member_b_name}: {path_data.suggested_kinship}.\n"
+        f"- Tổ tiên chung gần nhất: {path_data.common_ancestor_name or 'Quan hệ qua hôn nhân'}.\n"
+        f"- Đường đi phả hệ tới {path_data.member_a_name}: {path_data.path_from_ancestor_to_a}.\n"
+        f"- Đường đi phả hệ tới {path_data.member_b_name}: {path_data.path_from_ancestor_to_b}."
+    )
+    ai_explanation = generate_gemini_answer(prompt_used, fallback_text=sql_fallback)
 
     chat_message_id: UUID | None = None
     effective_user_id = actor.id if actor is not None else payload.user_id
