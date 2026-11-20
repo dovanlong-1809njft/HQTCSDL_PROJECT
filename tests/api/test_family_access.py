@@ -53,7 +53,7 @@ def test_rsvp_cannot_impersonate_another_member(client, session):
 @pytest.mark.parametrize("role", ["member", "guest"])
 def test_only_family_managers_can_create_events(client, session, role):
     session.user.role = role
-    response = client.post("/api/events", json={"family_id": str(FAMILY_ID), "title": "Event", "event_date": "2026-11-20T18:30:00"})
+    response = client.post("/api/events", json={"family_id": str(FAMILY_ID), "title": "Event", "location": "Test place", "event_date": "2026-11-20T18:30:00"})
     assert response.status_code == 403
     assert session.commits == 0
 

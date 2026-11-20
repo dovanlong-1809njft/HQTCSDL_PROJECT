@@ -15,7 +15,7 @@ class NameFields(BaseModel):
 class MemberFields(NameFields):
     branch_id: UUID | None = None
     birth_date: date | None = None
-    location: str | None = Field(default=None, max_length=300)
+    location: str | None = Field(default=None, min_length=1, max_length=300)
 
     @field_validator("birth_date")
     @classmethod

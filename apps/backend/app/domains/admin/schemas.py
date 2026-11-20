@@ -15,13 +15,13 @@ class AdminSchema(BaseModel):
 
 class SystemConfigCreate(AdminSchema):
     config_key: ConfigKey
-    config_value: str
-    description: str | None = Field(default=None, max_length=500)
+    config_value: str = Field(min_length=1, pattern=r"\S")
+    description: str = Field(min_length=1, max_length=500, pattern=r"\S")
 
 
 class SystemConfigUpdate(AdminSchema):
-    config_value: str
-    description: str | None = Field(default=None, max_length=500)
+    config_value: str = Field(min_length=1, pattern=r"\S")
+    description: str = Field(min_length=1, max_length=500, pattern=r"\S")
 
 
 class SystemConfigResponse(AdminSchema):

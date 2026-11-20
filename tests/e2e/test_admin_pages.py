@@ -174,7 +174,11 @@ def test_config_crud_and_delete_confirmation(ui):
     expect(page.get_by_label("Khóa cấu hình", exact=True)).to_have_attribute("readonly", "")
     page.get_by_label("Giá trị", exact=True).fill("")
     page.get_by_role("button", name="Lưu thay đổi").click()
-    expect(row).to_contain_text("(Trống)")
+    expect(page.get_by_role("alert")).to_contain_text("Bạn nhập giá trị cấu hình.")
+    assert not any(request[0] == "PUT" for request in state["requests"])
+    page.get_by_label("Giá trị", exact=True).fill("Tên đã sửa")
+    page.get_by_role("button", name="Lưu thay đổi").click()
+    expect(row).to_contain_text("Tên đã sửa")
     update = next(request for request in state["requests"] if request[0] == "PUT")
     assert set(update[2]) == {"config_value", "description"}
     assert update[3] == "Bearer test-admin"
@@ -190,8 +194,60 @@ def test_config_validation_does_not_send_bad_key(ui):
     page, state = ui
     open_as(page, "/admin-config")
     page.get_by_label("Khóa cấu hình", exact=True).fill("khóa sai")
+    page.get_by_label("Giá trị", exact=True).fill("Test value")
+    page.get_by_label("Mô tả", exact=True).fill("Test description")
     page.get_by_role("button", name="Thêm cấu hình", exact=True).click()
     expect(page.get_by_role("alert")).to_contain_text("Chỉ dùng chữ không dấu")
+    assert not any(request[0] == "POST" for request in state["requests"])
+
+
+@pytest.mark.parametrize("label", ["Khóa cấu hình", "Giá trị", "Mô tả"])
+@pytest.mark.parametrize("invalid", ["", "   "])
+def test_config_requires_all_nonblank_fields(ui, label, invalid):
+    page, state = ui
+    open_as(page, "/admin-config")
+    for name, value in [("Khóa cấu hình", "test.required"), ("Giá trị", "Test value"), ("Mô tả", "Test description")]:
+        page.get_by_label(name, exact=True).fill(value)
+    page.get_by_label(label, exact=True).fill(invalid)
+    page.get_by_role("button", name="Thêm cấu hình", exact=True).click()
+    expect(page.get_by_role("alert")).to_be_visible()
+    assert not any(request[0] == "POST" for request in state["requests"])
+
+
+@pytest.mark.parametrize("label", ["Họ và tên", "Email", "Mật khẩu", "Nhập lại mật khẩu"])
+@pytest.mark.parametrize("invalid", ["", "        "])
+def test_registration_rejects_missing_and_whitespace_fields(ui, label, invalid):
+    page, state = ui
+    page.goto("/register")
+    for name, value in [("Họ và tên", "Test member"), ("Email", "member@example.com"), ("Mật khẩu", "Password!2026"), ("Nhập lại mật khẩu", "Password!2026")]:
+        page.get_by_label(name, exact=True).fill(value)
+    page.get_by_label(label, exact=True).fill(invalid)
+    page.get_by_role("button", name="Đăng ký", exact=True).click()
+    expect(page.get_by_role("alert").first).to_be_visible()
+    assert not any(request[0] == "POST" for request in state["requests"])
+
+
+def test_registration_server_validation_is_readable(ui):
+    page, _ = ui
+    page.route("**/api/auth/register", lambda route: route.fulfill(status=422, json={"detail": [{"loc": ["body", "email"], "msg": "Invalid email"}]}))
+    page.goto("/register")
+    for name, value in [("Họ và tên", "Test member"), ("Email", "member@example.com"), ("Mật khẩu", "Password!2026"), ("Nhập lại mật khẩu", "Password!2026")]:
+        page.get_by_label(name, exact=True).fill(value)
+    page.get_by_role("button", name="Đăng ký", exact=True).click()
+    expect(page.get_by_role("alert")).to_contain_text("Dữ liệu chưa hợp lệ")
+    expect(page.get_by_role("heading", name="Tạo tài khoản", exact=True)).to_be_visible()
+
+
+@pytest.mark.parametrize("label", ["Email", "Mật khẩu"])
+@pytest.mark.parametrize("invalid", ["", "        "])
+def test_login_rejects_missing_and_whitespace_fields(ui, label, invalid):
+    page, state = ui
+    page.goto("/login")
+    page.get_by_label("Email", exact=True).fill("member@example.com")
+    page.get_by_label("Mật khẩu", exact=True).fill("Password!2026")
+    page.get_by_label(label, exact=True).fill(invalid)
+    page.get_by_role("button", name="Đăng nhập", exact=True).click()
+    expect(page.get_by_role("alert").first).to_be_visible()
     assert not any(request[0] == "POST" for request in state["requests"])
 
 
@@ -203,6 +259,7 @@ def test_config_server_errors_preserve_input(ui, code, detail, text):
     open_as(page, "/admin-config")
     page.get_by_label("Khóa cấu hình", exact=True).fill("site.name")
     page.get_by_label("Giá trị", exact=True).fill("Giữ nội dung")
+    page.get_by_label("Mô tả", exact=True).fill("Test description")
     page.get_by_role("button", name="Thêm cấu hình", exact=True).click()
     expect(page.get_by_role("alert")).to_contain_text(text)
     expect(page.get_by_label("Giá trị", exact=True)).to_have_value("Giữ nội dung")

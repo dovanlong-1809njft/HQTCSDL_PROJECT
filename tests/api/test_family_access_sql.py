@@ -73,7 +73,7 @@ def test_rsvp_must_match_account_and_event_family(family_api):
 
 def test_event_creation_requires_manager_in_the_same_family(family_api):
     client, _ = family_api
-    body = {"family_id": FAMILY_A, "title": "New isolation test", "event_date": "2026-11-20T10:00:00"}
+    body = {"family_id": FAMILY_A, "title": "New isolation test", "location": "Test place", "event_date": "2026-11-20T10:00:00"}
     assert client.post("/api/events", headers=headers(9), json=body).status_code == 403
     assert client.post("/api/events", headers=headers(6), json=body).status_code == 403
     response = client.post("/api/events", headers=headers(2), json=body)

@@ -26,9 +26,9 @@ export function Relationships({ familyId, user }) {
   return <section className="space-y-5 rounded-2xl border border-stone-200 bg-white p-5">
     <h2 className="text-lg font-semibold text-forest">Quan hệ gia phả</h2>
     {manage && <form className="space-y-4" onSubmit={(event) => { event.preventDefault(); if (!first || !second) return; const values = new FormData(event.currentTarget); setNotice(""); add.mutate({ first_id: first.id, second_id: second.id, married_date: kind === "marriages" ? values.get("married_date") || null : null }); }}>
-      <label className="block max-w-sm text-sm font-medium">Loại quan hệ<select className={`${fieldClass} mt-2`} value={kind} onChange={(event) => { setKind(event.target.value); add.reset(); }}><option value="parent-child">Cha/mẹ – con</option><option value="marriages">Hôn nhân</option></select></label>
+      <label className="block max-w-sm text-sm font-medium">Loại quan hệ<select aria-label="Loại quan hệ" className={`${fieldClass} mt-2`} value={kind} onChange={(event) => { setKind(event.target.value); add.reset(); }}><option value="parent-child">Cha/mẹ – con</option><option value="marriages">Hôn nhân</option></select></label>
       <div className="grid gap-4 sm:grid-cols-2"><MemberPicker label={kind === "parent-child" ? "Cha/mẹ" : "Người thứ nhất"} familyId={familyId} value={first} onChange={setFirst} /><MemberPicker label={kind === "parent-child" ? "Con" : "Người thứ hai"} familyId={familyId} value={second} onChange={setSecond} /></div>
-      {kind === "marriages" && <label className="block max-w-sm text-sm font-medium">Ngày kết hôn<input name="married_date" type="date" className={`${fieldClass} mt-2`} /></label>}
+      {kind === "marriages" && <label className="block max-w-sm text-sm font-medium">Ngày kết hôn<input name="married_date" type="date" required className={`${fieldClass} mt-2`} /></label>}
       <p className="text-sm text-stone-600">Mỗi người tối đa hai cha/mẹ. Hệ thống kiểm tra chu trình, quan hệ trùng và huyết thống trong ba đời.</p>
       <button className={buttonClass} disabled={add.isPending || !first || !second}>{add.isPending ? "Đang lưu…" : "Thêm quan hệ"}</button>
     </form>}

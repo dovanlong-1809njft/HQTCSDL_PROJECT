@@ -67,7 +67,7 @@ export function AdminConfig() {
   function submit(values) {
     const payload = {
       config_value: values.config_value,
-      description: values.description === "" ? null : values.description,
+      description: values.description.trim(),
     };
     if (editingKey === null) payload.config_key = values.config_key;
     save.mutate({ key: editingKey, payload });
@@ -135,7 +135,7 @@ export function AdminConfig() {
           <fieldset disabled={busy} className="mt-5 space-y-4 disabled:opacity-60">
             <div>
               <label htmlFor="config-key" className="mb-2 block text-sm font-semibold">Khóa cấu hình</label>
-              <input id="config-key" className={fieldClass} maxLength={100} readOnly={editingKey !== null} placeholder="site.name"
+              <input id="config-key" required className={fieldClass} maxLength={100} readOnly={editingKey !== null} placeholder="site.name"
                 aria-invalid={Boolean(errors.config_key)} aria-describedby="config-key-help config-key-error"
                 {...register("config_key", { required: "Bạn nhập khóa cấu hình.", maxLength: { value: 100, message: "Khóa tối đa 100 ký tự." }, pattern: { value: /^[A-Za-z0-9_.-]+$/, message: "Chỉ dùng chữ không dấu, số, dấu chấm, gạch dưới hoặc gạch ngang." } })} />
               <p id="config-key-help" className="mt-1.5 text-xs text-stone-500">{editingKey === null ? "Tối đa 100 ký tự, ví dụ site.name." : "Khóa được giữ nguyên khi chỉnh sửa."}</p>
@@ -143,12 +143,14 @@ export function AdminConfig() {
             </div>
             <div>
               <label htmlFor="config-value" className="mb-2 block text-sm font-semibold">Giá trị</label>
-              <textarea id="config-value" rows={4} className={fieldClass} {...register("config_value")} />
+              <textarea id="config-value" required rows={4} className={fieldClass} aria-invalid={Boolean(errors.config_value)} aria-describedby={errors.config_value ? "config-value-error" : undefined}
+                {...register("config_value", { required: "Bạn nhập giá trị cấu hình.", validate: (value) => Boolean(value.trim()) || "Giá trị không được chỉ gồm khoảng trắng." })} />
+              {errors.config_value && <p id="config-value-error" role="alert" className="mt-1 text-xs text-red-600">{errors.config_value.message}</p>}
             </div>
             <div>
-              <label htmlFor="config-description" className="mb-2 block text-sm font-semibold">Mô tả <span className="font-normal text-stone-400">(tùy chọn)</span></label>
-              <textarea id="config-description" rows={3} maxLength={500} className={fieldClass} aria-invalid={Boolean(errors.description)}
-                {...register("description", { maxLength: { value: 500, message: "Mô tả tối đa 500 ký tự." } })} />
+              <label htmlFor="config-description" className="mb-2 block text-sm font-semibold">Mô tả</label>
+              <textarea id="config-description" required rows={3} maxLength={500} className={fieldClass} aria-invalid={Boolean(errors.description)}
+                {...register("description", { required: "Bạn nhập mô tả cấu hình.", validate: (value) => Boolean(value.trim()) || "Mô tả không được chỉ gồm khoảng trắng.", maxLength: { value: 500, message: "Mô tả tối đa 500 ký tự." } })} />
               {errors.description && <p role="alert" className="mt-1 text-xs text-red-600">{errors.description.message}</p>}
             </div>
             <div className="flex flex-wrap gap-2 pt-1">

@@ -132,8 +132,8 @@ def scalar(engine, sql: str, **params):
 ENDPOINTS = [
     ("GET", "/api/admin/configs", None),
     ("GET", "/api/admin/configs/site.name", None),
-    ("POST", "/api/admin/configs", {"config_key": "site.name", "config_value": "FamilyConnect"}),
-    ("PUT", "/api/admin/configs/site.name", {"config_value": "Updated"}),
+    ("POST", "/api/admin/configs", {"config_key": "site.name", "config_value": "FamilyConnect", "description": "Test config"}),
+    ("PUT", "/api/admin/configs/site.name", {"config_value": "Updated", "description": "Test config"}),
     ("DELETE", "/api/admin/configs/site.name", None),
     ("GET", "/api/admin/verifications/pending", None),
     ("PATCH", f"/api/admin/verifications/{uid(4001)}/review", {"decision": "approved"}),
@@ -183,9 +183,9 @@ def test_admin_login_and_config_crud_persist_with_backend_permissions(api):
     with engine.begin() as connection:
         connection.exec_driver_sql("UPDATE core.SystemConfigs SET UpdatedAt='20000101'").close()
         # The real trigger overwrites even an explicit old timestamp.
-    updated = client.put("/api/admin/configs/site.name", json={"config_value": "Mới"}, headers=auth)
+    updated = client.put("/api/admin/configs/site.name", json={"config_value": "Mới", "description": "Test config"}, headers=auth)
     assert updated.status_code == 200, updated.text
-    assert updated.json()["description"] is None
+    assert updated.json()["description"] == "Test config"
     assert datetime.fromisoformat(updated.json()["updated_at"]).year >= 2026
     assert scalar(engine, "SELECT ConfigValue FROM core.SystemConfigs WHERE ConfigKey='site.name'") == "Mới"
     deleted = client.delete("/api/admin/configs/site.name", headers=auth)
@@ -196,8 +196,8 @@ def test_admin_login_and_config_crud_persist_with_backend_permissions(api):
 
 def test_duplicate_key_returns_conflict_and_preserves_original(api):
     client, engine, _ = api
-    assert client.post("/api/admin/configs", json={"config_key": "site.name", "config_value": "old"}, headers=headers()).status_code == 201
-    response = client.post("/api/admin/configs", json={"config_key": "SITE.NAME", "config_value": "overwrite"}, headers=headers())
+    assert client.post("/api/admin/configs", json={"config_key": "site.name", "config_value": "old", "description": "Test config"}, headers=headers()).status_code == 201
+    response = client.post("/api/admin/configs", json={"config_key": "SITE.NAME", "config_value": "overwrite", "description": "Test config"}, headers=headers())
     assert response.status_code == 409, response.text
     assert scalar(engine, "SELECT ConfigValue FROM core.SystemConfigs WHERE ConfigKey='site.name'") == "old"
     assert scalar(engine, "SELECT COUNT(*) FROM reports.AuditLog") == 1
@@ -206,17 +206,17 @@ def test_duplicate_key_returns_conflict_and_preserves_original(api):
 @pytest.mark.parametrize("method", ["GET", "PUT", "DELETE"])
 def test_missing_config_returns_not_found(api, method):
     response = api[0].request(method, "/api/admin/configs/missing", headers=headers(),
-                              json={"config_value": "new"} if method == "PUT" else None)
+                              json={"config_value": "new", "description": "Test config"} if method == "PUT" else None)
     assert response.status_code == 404, response.text
 
 
 @pytest.mark.parametrize("payload", [
-    {"config_key": "", "config_value": "x"},
-    {"config_key": "x" * 101, "config_value": "x"},
-    {"config_key": "khóa", "config_value": "x"},
-    {"config_key": "x", "config_value": None},
+    {"config_key": "", "config_value": "x", "description": "Test config"},
+    {"config_key": "x" * 101, "config_value": "x", "description": "Test config"},
+    {"config_key": "khóa", "config_value": "x", "description": "Test config"},
+    {"config_key": "x", "config_value": None, "description": "Test config"},
     {"config_key": "x", "config_value": "x", "description": "x" * 501},
-    {"config_key": "x", "config_value": "x", "actor_id": uid(2)},
+    {"config_key": "x", "config_value": "x", "description": "Test config", "actor_id": uid(2)},
 ])
 def test_config_validation(api, payload):
     assert api[0].post("/api/admin/configs", json=payload, headers=headers()).status_code == 422
@@ -285,12 +285,12 @@ def test_invalid_review_and_forged_actor_are_rejected(api, payload):
 def test_failed_audit_rolls_back_the_entire_operation(api, action):
     client, engine, options = api
     if action in {"update", "delete"}:
-        assert client.post("/api/admin/configs", json={"config_key": "site.name", "config_value": "old"}, headers=headers()).status_code == 201
+        assert client.post("/api/admin/configs", json={"config_key": "site.name", "config_value": "old", "description": "Test config"}, headers=headers()).status_code == 201
     options["fail_audit"] = True
     if action == "create":
-        response = client.post("/api/admin/configs", json={"config_key": "site.name", "config_value": "new"}, headers=headers())
+        response = client.post("/api/admin/configs", json={"config_key": "site.name", "config_value": "new", "description": "Test config"}, headers=headers())
     elif action == "update":
-        response = client.put("/api/admin/configs/site.name", json={"config_value": "new"}, headers=headers())
+        response = client.put("/api/admin/configs/site.name", json={"config_value": "new", "description": "Test config"}, headers=headers())
     elif action == "delete":
         response = client.delete("/api/admin/configs/site.name", headers=headers())
     else:

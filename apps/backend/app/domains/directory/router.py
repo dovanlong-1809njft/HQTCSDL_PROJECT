@@ -24,7 +24,7 @@ class HistoryFields(BaseModel):
     degree: str | None=Field(default=None,max_length=200)
     company: str | None=Field(default=None,max_length=200)
     position: str | None=Field(default=None,max_length=200)
-    start_date: date | None=None
+    start_date: date
     end_date: date | None=None
 
     @model_validator(mode="after")
@@ -83,6 +83,9 @@ def detail(member_id: UUID,family_id: UUID,db: DB,actor: Actor):
 
 def save_history(db,actor,member_id,resource,action,identifier=None,payload=None):
     values=payload.model_dump() if payload else {}
+    required=("institution","degree") if resource=="educations" else ("company","position")
+    if action in ("create","update") and any(not values.get(field) for field in required):
+        raise HTTPException(422,"Cần nhập đầy đủ thông tin học vấn hoặc công việc.")
     names=dict(institution="Institution",degree="Degree",company="Company",position="Position",start_date="StartDate",end_date="EndDate")
     statement="EXEC genealogy.usp_ManageHistory @ActorUserId=:actor,@MemberId=:member,@Resource=:resource,@Action=:action,@Id=:id"
     statement+="".join(f",@{names[key]}=:{key}" for key in values)

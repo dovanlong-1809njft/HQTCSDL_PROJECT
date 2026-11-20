@@ -31,9 +31,9 @@ MEMBER = UUID(int=401)
 HONOR = UUID(int=501)
 TOKEN = "A" * 64
 ITEM_ROW = dict(Id=ITEM, FamilyId=FAMILY, CreatedByUserId=USER, Type="story", Title="Ký ức",
-                Description=None, Content="Chuyện nhà", MediaUrl=None, CreatedAt="2026-11-13T00:00:00", VersionToken=TOKEN)
+                Description="Test description", Content="Chuyện nhà", MediaUrl=None, CreatedAt="2026-11-13T00:00:00", VersionToken=TOKEN)
 HONOR_ROW = dict(Id=HONOR, FamilyId=FAMILY, MemberId=MEMBER, FullName="Thành viên", Title="Đóng góp",
-                 Description=None, DateAwarded=None, CreatedAt="2026-11-13T00:00:00", VersionToken=TOKEN)
+                 Description="Test description", DateAwarded="2020-01-01", CreatedAt="2026-11-13T00:00:00", VersionToken=TOKEN)
 
 
 def sql_error(code):
@@ -117,11 +117,11 @@ def api():
 
 
 ENDPOINTS = [("get", "/items", None), ("get", f"/items/{ITEM}", None),
-             ("post", "/items", dict(type="story", title="A", content="B")),
+             ("post", "/items", dict(description="Test description", type="story", title="A", content="B")),
              ("patch", f"/items/{ITEM}", dict(title="C", expected_version=TOKEN)),
              ("delete", f"/items/{ITEM}", None), ("get", "/honors", None),
              ("get", f"/honors/{HONOR}", None),
-             ("post", "/honors", dict(member_id=str(MEMBER), title="A")),
+             ("post", "/honors", dict(member_id=str(MEMBER), title="A", description="Test description", date_awarded="2020-01-01")),
              ("patch", f"/honors/{HONOR}", dict(title="C", expected_version=TOKEN)),
              ("delete", f"/honors/{HONOR}", None), ("get", "/ranking", None),
              ("get", "/members", None), ("get", "/family-tree", None), ("get", "/families", None)]
@@ -172,15 +172,15 @@ def test_forged_signature_and_locked_account(api):
 
 def test_jwt_role_claim_cannot_grant_honors(api):
     client, db = api
-    assert request(client, "post", "/honors", dict(member_id=str(MEMBER), title="A"), auth=headers(role="admin")).status_code == 403
+    assert request(client, "post", "/honors", dict(member_id=str(MEMBER), title="A", description="Test description", date_awarded="2020-01-01"), auth=headers(role="admin")).status_code == 403
     assert db.commits == 0
 
 
-@pytest.mark.parametrize("payload", [dict(type="story", title=" ", content="B"), dict(type="story", title="A"),
-    dict(type="photo", title="A", media_url="javascript:alert(1)"), dict(type="photo", title="A", media_url="//evil.test/a"),
-    dict(type="document", title="A"), dict(type="story", title="A", content="B", actor_id=str(USER)),
-    dict(type="photo", title="A", media_url="https://a.test/\\evil"),
-    dict(type="story", title="A", content="B", family_id=str(OTHER))])
+@pytest.mark.parametrize("payload", [dict(description="Test description", type="story", title=" ", content="B"), dict(description="Test description", type="story", title="A"),
+    dict(description="Test description", type="photo", title="A", media_url="javascript:alert(1)"), dict(description="Test description", type="photo", title="A", media_url="//evil.test/a"),
+    dict(description="Test description", type="document", title="A"), dict(description="Test description", type="story", title="A", content="B", actor_id=str(USER)),
+    dict(description="Test description", type="photo", title="A", media_url="https://a.test/\\evil"),
+    dict(description="Test description", type="story", title="A", content="B", family_id=str(OTHER))])
 def test_invalid_item_and_mass_assignment(api, payload):
     client, db = api
     assert request(client, "post", "/items", payload, auth=headers()).status_code == 422
@@ -190,7 +190,7 @@ def test_invalid_item_and_mass_assignment(api, payload):
 def test_create_uses_jwt_actor_bound_values_and_commits(api):
     client, db = api
     title = "'); DROP TABLE heritage.Items;--"
-    response = request(client, "post", "/items", dict(type="story", title=title, content="B"), auth=headers())
+    response = request(client, "post", "/items", dict(description="Test description", type="story", title=title, content="B"), auth=headers())
     assert response.status_code == 201, response.text
     sql, params = db.calls[-1]
     assert params["actor_id"] == str(USER) and params["family_id"] == str(FAMILY)
@@ -227,7 +227,7 @@ def test_member_cannot_edit_or_delete_other_author(api, action):
 def test_sql_errors_are_sanitized_and_rolled_back(api, code, status):
     client, db = api
     db.error = code
-    response = request(client, "post", "/items", dict(type="story", title="A", content="B"), auth=headers())
+    response = request(client, "post", "/items", dict(description="Test description", type="story", title="A", content="B"), auth=headers())
     assert response.status_code == status
     assert "private SQL" not in response.text
     assert db.rollbacks == 1 and db.commits == 0
@@ -260,7 +260,7 @@ def test_honor_create_patch_delete_for_manager(api):
     client, db = api
     db.role = "family_head"
     for method, path, body, status in [
-        ("post", "/honors", dict(member_id=str(MEMBER), title="A"), 201),
+        ("post", "/honors", dict(member_id=str(MEMBER), title="A", description="Test description", date_awarded="2020-01-01"), 201),
         ("patch", f"/honors/{HONOR}", dict(title="B", expected_version=TOKEN), 200),
         ("delete", f"/honors/{HONOR}", None, 204)]:
         response = request(client, method, path, body, auth=headers())

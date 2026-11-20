@@ -19,11 +19,11 @@ class Contract(BaseModel):
 class ItemFields(Contract):
     type: ItemType
     title: Title
-    description: str | None = Field(default=None, max_length=500)
+    description: str = Field(min_length=1, max_length=500)
     content: str | None = Field(default=None, max_length=200000)
     media_url: str | None = Field(default=None, max_length=500)
 
-    @field_validator("description", "content", "media_url")
+    @field_validator("content", "media_url")
     @classmethod
     def blank_to_none(cls, value):
         return value or None
@@ -61,14 +61,14 @@ class ItemPatch(Contract):
     expected_version: Version
     type: ItemType | None = None
     title: Title | None = None
-    description: str | None = Field(default=None, max_length=500)
+    description: str | None = Field(default=None, min_length=1, max_length=500)
     content: str | None = Field(default=None, max_length=200000)
     media_url: str | None = Field(default=None, max_length=500)
 
     @model_validator(mode="after")
     def required_non_null(self):
-        if any(name in self.model_fields_set and getattr(self, name) is None for name in ("type", "title")):
-            raise ValueError("Loại và tiêu đề không được null.")
+        if any(name in self.model_fields_set and getattr(self, name) is None for name in ("type", "title", "description")):
+            raise ValueError("Loại, tiêu đề và mô tả không được null.")
         return self
 
 
@@ -87,8 +87,8 @@ class ItemResponse(Contract):
 
 class HonorFields(Contract):
     title: Title
-    description: str | None = Field(default=None, max_length=1000)
-    date_awarded: date | None = None
+    description: str = Field(min_length=1, max_length=1000)
+    date_awarded: date
 
 
 class HonorCreate(HonorFields):
@@ -98,13 +98,13 @@ class HonorCreate(HonorFields):
 class HonorPatch(Contract):
     expected_version: Version
     title: Title | None = None
-    description: str | None = Field(default=None, max_length=1000)
+    description: str | None = Field(default=None, min_length=1, max_length=1000)
     date_awarded: date | None = None
 
     @model_validator(mode="after")
     def required_non_null(self):
-        if "title" in self.model_fields_set and self.title is None:
-            raise ValueError("Tiêu đề không được null.")
+        if any(name in self.model_fields_set and getattr(self, name) is None for name in ("title", "description", "date_awarded")):
+            raise ValueError("Tiêu đề, mô tả và ngày trao không được null.")
         return self
 
 

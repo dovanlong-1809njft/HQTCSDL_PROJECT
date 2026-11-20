@@ -31,7 +31,7 @@ def request(client,method,path,body=None,user=9,**params):
 
 def create_event(client):
     when=datetime.now(timezone.utc)+timedelta(days=7)
-    response=request(client,'POST','/events',dict(family_id=uid(1001),title='Upcoming test event',event_date=when.isoformat()),user=2)
+    response=request(client,'POST','/events',dict(family_id=uid(1001),title='Upcoming test event',location='Test place',event_date=when.isoformat()),user=2)
     assert response.status_code==201,response.text
     return response.json()['event_id'],when
 
@@ -183,17 +183,17 @@ def test_reminder_creation_locks_event_until_insert_commits(feature_api,monkeypa
             release.set()
         response=future.result(timeout=10)
     assert response.status_code==201,response.text
-    response=request(client,'PUT',f'/events/{event}',dict(title='Earlier event',event_date=(when-timedelta(days=1)).isoformat()),user=2)
+    response=request(client,'PUT',f'/events/{event}',dict(title='Earlier event',location='Test place',event_date=(when-timedelta(days=1)).isoformat()),user=2)
     assert response.status_code==409,response.text
     assert request(client,'DELETE',f'/events/{event}/reminders/'+future.result().json()['id'],user=2 if for_family else 9).status_code==204
-    assert request(client,'PUT',f'/events/{event}',dict(title='Earlier event',event_date=(when-timedelta(days=1)).isoformat()),user=2).status_code==200
+    assert request(client,'PUT',f'/events/{event}',dict(title='Earlier event',location='Test place',event_date=(when-timedelta(days=1)).isoformat()),user=2).status_code==200
     response=request(client,'POST',f'/events/{event}/reminders',dict(reminder_time=(when-timedelta(hours=1)).isoformat()))
     assert response.status_code==422,response.text
 
 
 def test_month_filter_respects_phone_timezone(feature_api):
     client,_,_=feature_api
-    response=request(client,'POST','/events',dict(family_id=uid(1001),title='New month in Vietnam',event_date='2027-01-01T00:30:00+07:00'),user=2)
+    response=request(client,'POST','/events',dict(family_id=uid(1001),title='New month in Vietnam',location='Test place',event_date='2027-01-01T00:30:00+07:00'),user=2)
     assert response.status_code==201,response.text
     identifier=response.json()['event_id']
     rows=request(client,'GET','/events',family_id=uid(1001),year=2027,month=1,tz_offset=420).json()
