@@ -93,6 +93,10 @@ def records(db, actor, family_id, resource, q, offset, limit):
 
 
 def mutate(db, actor, family_id, resource, action, identifier, values):
+    if resource == "members" and action in ("create", "update") and any(
+        not values.get(field) for field in ("branch_id", "birth_date", "location")
+    ):
+        raise HTTPException(422, "Cần nhập đủ chi nhánh, ngày sinh và nơi ở của thành viên.")
     params = dict(actor=actor, family=family_id, resource=resource, action=action, id=identifier, **values)
     args = "@ActorUserId=:actor,@FamilyId=:family,@Resource=:resource,@Action=:action,@Id=:id"
     names = dict(name="Name", branch_id="BranchId", birth_date="BirthDate", location="Location")
@@ -126,9 +130,9 @@ def relations(db, actor, family_id, member_id):
         WHERE a.FamilyId=:family AND b.FamilyId=:family ORDER BY a.FullName,b.FullName,p.Id""",
         **params,
     )
-    ancestors = rows(db, "SELECT * FROM genealogy.fn_GetAncestors(:id) ORDER BY GenerationsUp,MemberId", id=member_id) if member_id else []
+    ancestors = rows(db, "SELECT MemberId AS id,FullName AS name,GenerationsUp AS depth FROM genealogy.fn_GetAncestors(:id) ORDER BY GenerationsUp,MemberId", id=member_id) if member_id else []
     descendants = (
-        rows(db, "SELECT * FROM genealogy.fn_GetDescendants(:id,NULL) ORDER BY GenerationsDown,MemberId", id=member_id)
+        rows(db, "SELECT MemberId AS id,FullName AS name,GenerationsDown AS depth FROM genealogy.fn_GetDescendants(:id,NULL) ORDER BY GenerationsDown,MemberId", id=member_id)
         if member_id
         else []
     )

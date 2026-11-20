@@ -4,11 +4,11 @@ export default {
   theme: {
     extend: {
       colors: {
-        forest: "#244b3e",
-        leaf: "#577c5a",
-        sage: "#e8efe4",
+        forest: "rgb(var(--forest-rgb) / <alpha-value>)",
+        leaf: "rgb(var(--leaf-rgb) / <alpha-value>)",
+        sage: "rgb(var(--sage-rgb) / <alpha-value>)",
         earth: "#9a684b",
-        sand: "#f7f5ef",
+        sand: "rgb(var(--sand-rgb) / <alpha-value>)",
       },
       boxShadow: {
         soft: "0 18px 50px rgba(36, 75, 62, 0.10)",

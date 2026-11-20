@@ -31,6 +31,7 @@ def social_ui(e2e_browser,social_url):
         req=route.request;path=urlparse(req.url).path
         if not path.startswith('/api/'):
             route.continue_();return
+        if path=='/api/settings':route.fulfill(json=dict(site_name='FamilyConnect',logo_url='/favicon.svg',theme='forest',registration_enabled=True));return
         params=parse_qs(urlparse(req.url).query);body=req.post_data_json if req.post_data else None
         state['requests'].append((req.method,path,params,body))
         if state['fail']:
@@ -104,6 +105,7 @@ def test_directory_search_and_education_crud(social_ui):
     page.get_by_role('button',name=re.compile('^Nguyễn An')).click()
     page.get_by_role('button',name='Thêm học vấn',exact=True).click()
     page.get_by_label('Trường / cơ sở đào tạo',exact=True).fill('Đại học kiểm thử');page.get_by_label('Bằng cấp',exact=True).fill('Kỹ sư')
+    page.get_by_label('Ngày bắt đầu',exact=True).fill('2020-01-01')
     page.get_by_role('button',name='Lưu thông tin',exact=True).click();expect(page.get_by_role('paragraph').filter(has_text='Đại học kiểm thử')).to_be_visible()
     assert any(r[2].get('location')==['Hồ Chí Minh'] for r in state['requests'])
     page.once('dialog',lambda dialog:dialog.accept());page.get_by_role('button',name='Xóa Đại học kiểm thử',exact=True).click();expect(page.get_by_text('Đại học kiểm thử',exact=True)).to_have_count(0)
@@ -113,8 +115,9 @@ def test_community_create_react_comment_edit_and_report(social_ui):
     page,state=social_ui;page.goto('/community')
     page.get_by_label('Nội dung',exact=True).fill('Tin mới của gia đình');page.get_by_role('button',name='Đăng bài',exact=True).click()
     card=page.get_by_role('article').filter(has=page.get_by_text('Tin mới của gia đình',exact=True));expect(card).to_be_visible()
-    card.get_by_role('combobox',name='Cảm xúc cho bài của Nguyễn An',exact=True).select_option('Love')
-    expect(card.get_by_role('combobox')).to_have_value('Love')
+    card.get_by_role('button',name='Chọn cảm xúc cho bài của Nguyễn An',exact=True).click()
+    card.get_by_role('button',name='Yêu thích',exact=True).click()
+    expect(card.get_by_role('button',name='Yêu thích cho bài của Nguyễn An',exact=True)).to_have_attribute('aria-pressed','true')
     card.get_by_role('button',name='Bình luận · 0',exact=True).click();card.get_by_label('Viết bình luận',exact=True).fill('Cả nhà cùng xem nhé');card.get_by_role('button',name='Gửi bình luận',exact=True).click();expect(card.get_by_text('Cả nhà cùng xem nhé',exact=True)).to_be_visible()
     card.get_by_role('button',name='Báo cáo bài',exact=True).click();card.get_by_label('Lý do báo cáo',exact=True).fill('Lý do kiểm thử');card.get_by_role('button',name='Gửi báo cáo',exact=True).click()
     expect(card.get_by_label('Lý do báo cáo',exact=True)).to_have_count(0)
@@ -142,6 +145,7 @@ def test_create_update_and_delete_event(social_ui):
     page,state=social_ui;page.goto('/events');page.get_by_role('button',name='Tạo sự kiện',exact=True).click()
     page.get_by_label('Tên sự kiện',exact=True).fill('Sự kiện mới')
     page.get_by_label('Thời gian (giờ trên thiết bị)',exact=True).fill('2026-11-25T18:00')
+    page.get_by_label('Địa điểm',exact=True).fill('Nhà thờ họ')
     page.get_by_role('button',name='Lưu sự kiện',exact=True).click()
     page.get_by_role('button',name=re.compile('.*Sự kiện mới')).click()
     page.get_by_role('button',name='Sửa sự kiện',exact=True).click();page.get_by_label('Tên sự kiện',exact=True).fill('Sự kiện đã sửa')
@@ -149,6 +153,56 @@ def test_create_update_and_delete_event(social_ui):
     page.once('dialog',lambda dialog:dialog.accept());page.get_by_role('button',name='Xóa sự kiện',exact=True).click();expect(page.get_by_role('heading',name='Sự kiện đã sửa',exact=True)).to_have_count(0)
     body=next(r[3] for r in state['requests'] if r[0]=='POST' and r[1]=='/api/events')
     assert body['event_date']=='2026-11-25T11:00:00.000Z'
+
+
+@pytest.mark.parametrize('label,invalid',[('Tên sự kiện',''),('Tên sự kiện','   '),('Thời gian (giờ trên thiết bị)',''),('Địa điểm',''),('Địa điểm','   ')])
+def test_event_requires_complete_information(social_ui,label,invalid):
+    page,state=social_ui
+    page.goto('/events')
+    page.get_by_role('button',name='Tạo sự kiện',exact=True).click()
+    for name,value in [('Tên sự kiện','Test event'),('Thời gian (giờ trên thiết bị)','2027-01-01T10:00'),('Địa điểm','Test place')]:
+        page.get_by_label(name,exact=True).fill(value)
+    control=page.get_by_label(label,exact=True)
+    control.fill(invalid)
+    page.get_by_role('button',name='Lưu sự kiện',exact=True).click()
+    assert control.evaluate('field => !field.validity.valid')
+    assert not any(row[0]=='POST' for row in state['requests'])
+
+
+@pytest.mark.parametrize('label,invalid',[('Trường / cơ sở đào tạo',''),('Trường / cơ sở đào tạo','   '),('Bằng cấp',''),('Bằng cấp','   '),('Ngày bắt đầu','')])
+def test_education_requires_complete_information(social_ui,label,invalid):
+    page,state=social_ui
+    page.goto('/directory')
+    page.get_by_role('button',name=re.compile('^Nguyễn An')).click()
+    page.get_by_role('button',name='Thêm học vấn',exact=True).click()
+    for name,value in [('Trường / cơ sở đào tạo','Test school'),('Bằng cấp','Test degree'),('Ngày bắt đầu','2020-01-01')]:
+        page.get_by_label(name,exact=True).fill(value)
+    control=page.get_by_label(label,exact=True)
+    control.fill(invalid)
+    page.get_by_role('button',name='Lưu thông tin',exact=True).click()
+    assert control.evaluate('field => !field.validity.valid')
+    assert not any(row[0]=='POST' for row in state['requests'])
+
+
+@pytest.mark.parametrize('target',['post','comment','report'])
+def test_community_rejects_whitespace_before_request(social_ui,target):
+    page,state=social_ui
+    page.goto('/community')
+    if target=='post':
+        control=page.get_by_label('Nội dung',exact=True)
+        button=page.get_by_role('button',name='Đăng bài',exact=True)
+    elif target=='comment':
+        page.get_by_role('button',name='Bình luận · 0',exact=True).click()
+        control=page.get_by_label('Viết bình luận',exact=True)
+        button=page.get_by_role('button',name='Gửi bình luận',exact=True)
+    else:
+        page.get_by_role('button',name='Báo cáo bài',exact=True).click()
+        control=page.get_by_label('Lý do báo cáo',exact=True)
+        button=page.get_by_role('button',name='Gửi báo cáo',exact=True)
+    control.fill('   ')
+    button.click()
+    assert control.evaluate('field => !field.validity.valid')
+    assert not any(row[0]=='POST' for row in state['requests'])
 
 
 @pytest.mark.parametrize('path,title',[('/directory','Danh bạ gia đình'),('/community','Bảng tin gia đình'),('/events','Lịch gia đình'),('/notifications','Thông báo')])

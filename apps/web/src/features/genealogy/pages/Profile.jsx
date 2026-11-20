@@ -36,7 +36,7 @@ export function Profile() {
         <label className="block text-sm font-medium">Họ và tên<input className={`${fieldClass} mt-2`} name="name" required minLength={2} maxLength={200} defaultValue={data.member?.name || data.user.full_name} autoComplete="name" /></label>
         {data.member && <>
           <p className="text-sm">{data.member.family_name} · {data.member.branch_name || "Chưa phân chi"}</p>
-          <div className="grid gap-4 sm:grid-cols-2"><label className="block text-sm font-medium">Ngày sinh<input type="date" name="birth_date" className={`${fieldClass} mt-2`} defaultValue={data.member.birth_date || ""} max={new Date().toISOString().slice(0,10)} /></label><label className="block text-sm font-medium">Nơi ở<input name="location" className={`${fieldClass} mt-2`} maxLength={300} defaultValue={data.member.location || ""} autoComplete="address-level2" /></label></div>
+          <div className="grid gap-4 sm:grid-cols-2"><label className="block text-sm font-medium">Ngày sinh<input type="date" name="birth_date" required className={`${fieldClass} mt-2`} defaultValue={data.member.birth_date || ""} max={new Date().toISOString().slice(0,10)} /></label><label className="block text-sm font-medium">Nơi ở<input name="location" required className={`${fieldClass} mt-2`} maxLength={300} defaultValue={data.member.location || ""} autoComplete="address-level2" /></label></div>
         </>}
         {save.isError && <p role="alert" className="text-red-700">{getApiErrorMessage(save.error)}</p>}
         <button className={buttonClass} disabled={save.isPending}>{save.isPending ? "Đang lưu…" : "Lưu hồ sơ"}</button>

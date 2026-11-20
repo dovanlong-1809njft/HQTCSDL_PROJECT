@@ -78,7 +78,7 @@ export function MemberApproval() {
                       <td className="px-5 py-4 align-top"><div className="flex gap-2">
                         <button type="button" disabled={review.isPending || !row.user_is_active} aria-label={`Duyệt ${row.user_full_name}`}
                           onClick={() => review.mutate({ id: row.verification_id, decision: "approved" })}
-                          className="whitespace-nowrap rounded-lg bg-forest px-3 py-2 text-xs font-semibold text-white hover:bg-[#1d4034] disabled:opacity-40">
+                          className="whitespace-nowrap rounded-lg bg-forest px-3 py-2 text-xs font-semibold text-white hover:bg-forest/90 disabled:opacity-40">
                           {review.isPending && review.variables.id === row.verification_id && review.variables.decision === "approved" ? "Đang duyệt…" : "Duyệt"}
                         </button>
                         <button type="button" disabled={review.isPending} aria-label={`Từ chối ${row.user_full_name}`}

@@ -25,6 +25,7 @@ def membership_ui(e2e_browser,vite_server):
             path=urlparse(req.url).path
             if not path.startswith("/api/"):
                 route.continue_(); return
+            if path=="/api/settings": route.fulfill(json=dict(site_name="FamilyConnect",logo_url="/favicon.svg",theme="forest",registration_enabled=True)); return
             params=parse_qs(urlparse(req.url).query)
             body=req.post_data_json if req.post_data else None
             if req.method!="GET": state["writes"].append((req.method,path,body))
@@ -83,9 +84,12 @@ def test_profile_save_and_request_verification(membership_ui):
 
 def test_member_create_edit_delete(membership_ui):
     page,state,_=membership_ui
+    state["branches"]=[dict(id="test-branch",name="Chi kiểm thử",can_manage=True)]
     page.goto("/family-management")
     page.get_by_label("Họ và tên",exact=True).fill("Thành viên mới")
     page.get_by_label("Ngày sinh",exact=True).fill("2001-02-03")
+    page.get_by_label("Chi nhánh",exact=True).select_option("test-branch")
+    page.get_by_label("Nơi ở",exact=True).fill("Hà Nội")
     page.get_by_role("button",name="Thêm mới",exact=True).click()
     row=page.get_by_role("listitem").filter(has_text="Thành viên mới")
     expect(row).to_be_visible()
@@ -100,6 +104,49 @@ def test_member_create_edit_delete(membership_ui):
     writes=[entry for entry in state["writes"] if "/members" in entry[1]]
     assert [entry[0] for entry in writes]==["POST","PUT","DELETE"]
     assert writes[0][2]["birth_date"]=="2001-02-03"
+
+
+@pytest.mark.parametrize("field,invalid", [("name", ""), ("name", "   "), ("branch_id", ""), ("birth_date", ""), ("location", ""), ("location", "   ")])
+def test_member_form_blocks_incomplete_data(membership_ui, field, invalid):
+    page,state,_=membership_ui
+    state["branches"]=[dict(id="test-branch",name="Chi kiểm thử",can_manage=True)]
+    page.goto("/family-management")
+    page.get_by_label("Họ và tên",exact=True).fill("Test member")
+    page.get_by_label("Chi nhánh",exact=True).select_option("test-branch")
+    page.get_by_label("Ngày sinh",exact=True).fill("1990-01-01")
+    page.get_by_label("Nơi ở",exact=True).fill("Hà Nội")
+    control=page.get_by_label("Họ và tên",exact=True) if field=="name" else page.locator(f'[name="{field}"]')
+    control.select_option(invalid) if field=="branch_id" else control.fill(invalid)
+    page.get_by_role("button",name="Thêm mới",exact=True).click()
+    assert control.evaluate("field => !field.validity.valid")
+    assert not state["writes"]
+    control.select_option("test-branch") if field=="branch_id" else control.fill("1990-01-01" if field=="birth_date" else "Valid value")
+    page.get_by_role("button",name="Thêm mới",exact=True).click()
+    expect(page.get_by_role("status").filter(has_text="Đã lưu dữ liệu")).to_be_visible()
+    assert len(state["writes"])==1
+
+
+@pytest.mark.parametrize("field", ["birth_date", "location"])
+def test_linked_profile_requires_birth_date_and_location(membership_ui, field):
+    page,state,_=membership_ui
+    state["profile"]["member"]=dict(id=FIRST,name="Nguyễn An",family_name="Gia đình kiểm thử",branch_name="Chi kiểm thử",birth_date="1990-01-01",location="Hà Nội")
+    page.goto("/profile")
+    control=page.locator(f'[name="{field}"]')
+    control.fill("")
+    page.get_by_role("button",name="Lưu hồ sơ",exact=True).click()
+    assert control.evaluate("field => !field.validity.valid")
+    assert not state["writes"]
+
+
+def test_marriage_requires_date(membership_ui):
+    page,state,_=membership_ui
+    page.goto("/family-tree")
+    page.get_by_label("Loại quan hệ",exact=True).select_option("marriages")
+    page.get_by_label("Người thứ nhất",exact=True).select_option(FIRST)
+    page.get_by_label("Người thứ hai",exact=True).select_option(SECOND)
+    page.get_by_role("button",name="Thêm quan hệ",exact=True).click()
+    assert page.get_by_label("Ngày kết hôn",exact=True).evaluate("field => !field.validity.valid")
+    assert not state["writes"]
 
 
 def test_relation_change_refreshes_tree_and_queries_ancestors(membership_ui):

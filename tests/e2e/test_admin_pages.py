@@ -8,6 +8,8 @@ import pytest
 
 playwright = pytest.importorskip("playwright.sync_api")
 expect = playwright.expect
+SITE_DEFAULTS = {"site_name": "FamilyConnect", "logo_url": "/favicon.svg", "theme": "forest", "registration_enabled": True}
+SITE_KEYS = {"site.name": "site_name", "site.logo_url": "logo_url", "site.theme": "theme", "registration.enabled": "registration_enabled"}
 
 
 @pytest.fixture(scope="session")
@@ -44,6 +46,7 @@ def ui(browser_app):
     context = browser.new_context(base_url=url, viewport={"width": 1440, "height": 1000})
     page = context.new_page()
     page.set_default_timeout(10000)
+    page.set_default_navigation_timeout(30000)
     state = {"configs": {}, "pending": [pending("a", "Nguyễn An", "member-a"),
              pending("b", "Trần Bình", "member-a"), pending("c", "Lê Chi", "member-c", "Chi B")],
              "requests": [], "read_error": None, "write_error": None, "hold_write": False, "held": [],
@@ -59,6 +62,17 @@ def ui(browser_app):
         path, method = unquote(parsed.path), request.method
         body = request.post_data_json if request.post_data else None
         state["requests"].append((method, path, body, request.headers.get("authorization")))
+        if path == "/api/settings":
+            if state.get("settings_error"):
+                route.fulfill(status=503, json={"detail": "Thiết lập chưa sẵn sàng."})
+                return
+            settings = dict(SITE_DEFAULTS)
+            for key, field in SITE_KEYS.items():
+                if key in state["configs"]:
+                    value = state["configs"][key]["config_value"]
+                    settings[field] = value.lower() == "true" if field == "registration_enabled" else value
+            route.fulfill(json=settings)
+            return
         if path == "/api/auth/login":
             role = "family_head" if body["email"].startswith("head") else "admin"
             route.fulfill(json={"access_token": f"test-{role}", "user": {
@@ -82,6 +96,12 @@ def ui(browser_app):
             route.fulfill(status=code, json={"detail": detail})
             return
         params = parse_qs(parsed.query)
+        if path == "/api/admin/site-settings" and method == "PUT":
+            for key, field in SITE_KEYS.items():
+                value = str(body[field]).lower() if isinstance(body[field], bool) else body[field]
+                state["configs"][key] = {"config_key": key, "config_value": value, "description": "Website setting", "updated_at": "2026-11-20T10:00:00"}
+            route.fulfill(json=body)
+            return
         offset, limit = int(params.get("offset", [0])[0]), int(params.get("limit", [50])[0])
         if path == "/api/admin/statistics":
             rows = state["statistics"]
@@ -164,48 +184,96 @@ def test_config_crud_and_delete_confirmation(ui):
     page, state = ui
     open_as(page, "/admin-config")
     expect(page.get_by_text("Chưa có cấu hình trên trang này.")).to_be_visible()
-    page.get_by_label("Khóa cấu hình", exact=True).fill("site.name")
-    page.get_by_label("Giá trị", exact=True).fill("Gia phả Việt Nam")
-    page.get_by_label("Mô tả", exact=False).fill("Tên ứng dụng")
-    page.get_by_role("button", name="Thêm cấu hình", exact=True).click()
+    page.get_by_label("Tên website", exact=True).fill("Gia phả Việt Nam")
+    page.get_by_role("button", name="Lưu thiết lập website", exact=True).click()
     row = page.get_by_role("row").filter(has_text="site.name")
     expect(row).to_contain_text("Gia phả Việt Nam")
-    row.get_by_role("button", name="Sửa site.name").click()
-    expect(page.get_by_label("Khóa cấu hình", exact=True)).to_have_attribute("readonly", "")
-    page.get_by_label("Giá trị", exact=True).fill("")
-    page.get_by_role("button", name="Lưu thay đổi").click()
-    expect(row).to_contain_text("(Trống)")
+    page.get_by_label("Tên website", exact=True).fill("Tên đã sửa")
+    page.get_by_role("button", name="Lưu thiết lập website", exact=True).click()
+    expect(row).to_contain_text("Tên đã sửa")
     update = next(request for request in state["requests"] if request[0] == "PUT")
-    assert set(update[2]) == {"config_value", "description"}
+    assert set(update[2]) == {"site_name", "logo_url", "theme", "registration_enabled"}
     assert update[3] == "Bearer test-admin"
+    assert not any(request[0] == "POST" for request in state["requests"])
     page.once("dialog", lambda dialog: dialog.dismiss())
     row.get_by_role("button", name="Xóa site.name").click()
     assert not any(request[0] == "DELETE" for request in state["requests"])
     page.once("dialog", lambda dialog: dialog.accept())
     row.get_by_role("button", name="Xóa site.name").click()
-    expect(page.get_by_text("Chưa có cấu hình trên trang này.")).to_be_visible()
+    expect(row).to_have_count(0)
+    expect(page.get_by_label("Tên website", exact=True)).to_have_value("FamilyConnect")
 
 
-def test_config_validation_does_not_send_bad_key(ui):
+def test_config_page_has_no_manual_key_editor(ui):
     page, state = ui
     open_as(page, "/admin-config")
-    page.get_by_label("Khóa cấu hình", exact=True).fill("khóa sai")
-    page.get_by_role("button", name="Thêm cấu hình", exact=True).click()
-    expect(page.get_by_role("alert")).to_contain_text("Chỉ dùng chữ không dấu")
+    expect(page.get_by_label("Tên website", exact=True)).to_be_visible()
+    for label in ["Khóa cấu hình", "Giá trị", "Mô tả"]:
+        expect(page.get_by_label(label, exact=True)).to_have_count(0)
+    expect(page.get_by_role("heading", name="Thêm cấu hình", exact=True)).to_have_count(0)
+    expect(page.get_by_role("button", name="Thêm cấu hình", exact=True)).to_have_count(0)
+    expect(page.locator("form")).to_have_count(1)
     assert not any(request[0] == "POST" for request in state["requests"])
 
 
-@pytest.mark.parametrize("code,detail,text", [(409, "Khóa cấu hình đã tồn tại.", "Khóa cấu hình đã tồn tại."),
-                                               (422, [{"loc": ["body", "description"], "msg": "Too long"}], "Dữ liệu chưa hợp lệ.")])
+@pytest.mark.parametrize("label", ["Tên website", "URL logo"])
+@pytest.mark.parametrize("invalid", ["", "   "])
+def test_config_requires_all_nonblank_fields(ui, label, invalid):
+    page, state = ui
+    open_as(page, "/admin-config")
+    page.get_by_label(label, exact=True).fill(invalid)
+    page.get_by_role("button", name="Lưu thiết lập website", exact=True).click()
+    expect(page.get_by_role("alert")).to_be_visible()
+    assert not any(request[0] == "PUT" for request in state["requests"])
+
+
+@pytest.mark.parametrize("label", ["Họ và tên", "Email", "Mật khẩu", "Nhập lại mật khẩu"])
+@pytest.mark.parametrize("invalid", ["", "        "])
+def test_registration_rejects_missing_and_whitespace_fields(ui, label, invalid):
+    page, state = ui
+    page.goto("/register")
+    for name, value in [("Họ và tên", "Test member"), ("Email", "member@example.com"), ("Mật khẩu", "Password!2026"), ("Nhập lại mật khẩu", "Password!2026")]:
+        page.get_by_label(name, exact=True).fill(value)
+    page.get_by_label(label, exact=True).fill(invalid)
+    page.get_by_role("button", name="Đăng ký", exact=True).click()
+    expect(page.get_by_role("alert").first).to_be_visible()
+    assert not any(request[0] == "POST" for request in state["requests"])
+
+
+def test_registration_server_validation_is_readable(ui):
+    page, _ = ui
+    page.route("**/api/auth/register", lambda route: route.fulfill(status=422, json={"detail": [{"loc": ["body", "email"], "msg": "Invalid email"}]}))
+    page.goto("/register")
+    for name, value in [("Họ và tên", "Test member"), ("Email", "member@example.com"), ("Mật khẩu", "Password!2026"), ("Nhập lại mật khẩu", "Password!2026")]:
+        page.get_by_label(name, exact=True).fill(value)
+    page.get_by_role("button", name="Đăng ký", exact=True).click()
+    expect(page.get_by_role("alert")).to_contain_text("Dữ liệu chưa hợp lệ")
+    expect(page.get_by_role("heading", name="Tạo tài khoản", exact=True)).to_be_visible()
+
+
+@pytest.mark.parametrize("label", ["Email", "Mật khẩu"])
+@pytest.mark.parametrize("invalid", ["", "        "])
+def test_login_rejects_missing_and_whitespace_fields(ui, label, invalid):
+    page, state = ui
+    page.goto("/login")
+    page.get_by_label("Email", exact=True).fill("member@example.com")
+    page.get_by_label("Mật khẩu", exact=True).fill("Password!2026")
+    page.get_by_label(label, exact=True).fill(invalid)
+    page.get_by_role("button", name="Đăng nhập", exact=True).click()
+    expect(page.get_by_role("alert").first).to_be_visible()
+    assert not any(request[0] == "POST" for request in state["requests"])
+
+
+@pytest.mark.parametrize("code,detail,text", [(409, "Thiết lập đã thay đổi.", "Thiết lập đã thay đổi."),
+                                               (422, [{"loc": ["body", "site_name"], "msg": "Too long"}], "Dữ liệu chưa hợp lệ.")])
 def test_config_server_errors_preserve_input(ui, code, detail, text):
     page, state = ui
     state["write_error"] = code, detail
     open_as(page, "/admin-config")
-    page.get_by_label("Khóa cấu hình", exact=True).fill("site.name")
-    page.get_by_label("Giá trị", exact=True).fill("Giữ nội dung")
-    page.get_by_role("button", name="Thêm cấu hình", exact=True).click()
+    page.get_by_label("Tên website", exact=True).fill("Giữ nội dung")
+    page.get_by_role("button", name="Lưu thiết lập website", exact=True).click()
     expect(page.get_by_role("alert")).to_contain_text(text)
-    expect(page.get_by_label("Giá trị", exact=True)).to_have_value("Giữ nội dung")
+    expect(page.get_by_label("Tên website", exact=True)).to_have_value("Giữ nội dung")
 
 
 def test_config_pagination_and_delete_last_row(ui):
@@ -496,3 +564,107 @@ def test_task8_mobile_layout(ui, tmp_path):
     expect(page.get_by_role("listitem")).to_have_count(3)
     assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
     page.screenshot(path=str(tmp_path / "reports-task8-mobile.png"), full_page=True)
+
+
+@pytest.mark.parametrize("width", [1440, 1024, 768, 390])
+def test_website_settings_apply_name_logo_theme_and_registration(ui, tmp_path, width):
+    page, state = ui
+    page.set_viewport_size({"width": width, "height": 1000})
+    open_as(page, "/admin-config")
+    page.get_by_label("Tên website", exact=True).fill("Gia phả kiểm thử")
+    page.get_by_label("URL logo", exact=True).fill("/assets/icons/ui-award.svg")
+    page.get_by_label("Màu giao diện", exact=True).select_option("ocean")
+    page.get_by_label("Cho phép đăng ký tài khoản mới", exact=True).uncheck()
+    page.get_by_role("button", name="Lưu thiết lập website", exact=True).click()
+    expect(page.get_by_role("status")).to_contain_text("Đã lưu thiết lập website")
+    expect(page.locator("html")).to_have_attribute("data-theme", "ocean")
+    expect(page).to_have_title(re.compile("^Gia phả kiểm thử"))
+    assert page.locator('link[rel="icon"]').get_attribute("href").endswith("/assets/icons/ui-award.svg")
+    assert page.get_by_role("button", name="Lưu thiết lập website", exact=True).evaluate("button => getComputedStyle(button).backgroundColor") == "rgb(29, 77, 122)"
+    assert len(state["configs"]) == 4
+    assert next(row[2] for row in state["requests"] if row[1] == "/api/admin/site-settings")["registration_enabled"] is False
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+    page.get_by_role("heading", name="Cấu hình hệ thống", exact=True).scroll_into_view_if_needed()
+    screenshot = tmp_path / f"website-settings-{width}.png"
+    page.screenshot(path=str(screenshot), full_page=True)
+    print("SETTINGS_SCREENSHOT", str(screenshot))
+    page.reload()
+    expect(page.get_by_label("Tên website", exact=True)).to_have_value("Gia phả kiểm thử")
+    expect(page.get_by_label("Cho phép đăng ký tài khoản mới", exact=True)).not_to_be_checked()
+    page.get_by_role("button", name="Đăng xuất", exact=True).click()
+    expect(page).to_have_url(re.compile("/login$"))
+    expect(page.get_by_role("link", name="Gia phả kiểm thử — trang chủ", exact=True)).to_be_visible()
+    expect(page.locator(".brand-mark img")).to_have_attribute("src", "/assets/icons/ui-award.svg")
+    expect(page.get_by_role("link", name="Đăng ký", exact=True)).to_have_count(0)
+    page.goto("/register")
+    expect(page.get_by_role("heading", name="Đăng ký đang tạm đóng", exact=True)).to_be_visible()
+    expect(page.get_by_label("Email", exact=True)).to_have_count(0)
+    page.goto("/login")
+    expect(page.get_by_role("button", name="Đăng nhập", exact=True)).to_be_visible()
+
+
+@pytest.mark.parametrize("theme,color", [("forest", "rgb(36, 75, 62)"), ("ocean", "rgb(29, 77, 122)"), ("warm", "rgb(115, 66, 40)")])
+def test_website_palette_changes_real_controls(ui, theme, color):
+    page, _ = ui
+    open_as(page, "/admin-config")
+    page.get_by_label("Màu giao diện", exact=True).select_option(theme)
+    button = page.get_by_role("button", name="Lưu thiết lập website", exact=True)
+    button.click()
+    expect(page.get_by_role("status")).to_contain_text("Đã lưu thiết lập website")
+    assert button.evaluate("element => getComputedStyle(element).backgroundColor") == color
+
+
+def test_site_settings_save_error_keeps_draft_and_current_brand(ui):
+    page, state = ui
+    open_as(page, "/admin-config")
+    state["write_error"] = 503, "Chưa lưu được thiết lập."
+    page.get_by_label("Tên website", exact=True).fill("Bản nháp chưa lưu")
+    page.get_by_role("button", name="Lưu thiết lập website", exact=True).click()
+    expect(page.get_by_role("alert")).to_contain_text("Chưa lưu được thiết lập")
+    expect(page.get_by_label("Tên website", exact=True)).to_have_value("Bản nháp chưa lưu")
+    expect(page).to_have_title(re.compile("^FamilyConnect"))
+    assert not state["configs"]
+    page.get_by_role("button", name="Hủy thay đổi", exact=True).click()
+    expect(page.get_by_label("Tên website", exact=True)).to_have_value("FamilyConnect")
+    expect(page.get_by_role("alert")).to_have_count(0)
+
+
+def test_registration_fails_closed_when_settings_unavailable(ui):
+    page, state = ui
+    state["settings_error"] = True
+    page.goto("/register")
+    expect(page.get_by_role("alert")).to_contain_text("Chưa tải được thiết lập đăng ký")
+    expect(page.get_by_label("Email", exact=True)).to_have_count(0)
+    page.goto("/login")
+    expect(page.get_by_role("button", name="Đăng nhập", exact=True)).to_be_visible()
+
+
+def test_deleted_setting_is_recreated_by_website_form(ui):
+    page, state = ui
+    open_as(page, "/admin-config")
+    page.get_by_label("Màu giao diện", exact=True).select_option("warm")
+    page.get_by_role("button", name="Lưu thiết lập website", exact=True).click()
+    expect(page.locator("html")).to_have_attribute("data-theme", "warm")
+    expect(page.get_by_label("Màu giao diện", exact=True)).to_have_value("warm")
+    page.once("dialog", lambda dialog: dialog.accept())
+    page.get_by_role("button", name="Xóa site.theme", exact=True).click()
+    expect(page.locator("html")).to_have_attribute("data-theme", "forest")
+    assert "site.theme" not in state["configs"]
+    page.get_by_label("Màu giao diện", exact=True).select_option("ocean")
+    page.get_by_role("button", name="Lưu thiết lập website", exact=True).click()
+    expect(page.locator("html")).to_have_attribute("data-theme", "ocean")
+    assert state["configs"]["site.theme"]["config_value"] == "ocean"
+    assert not any(request[0] == "POST" for request in state["requests"])
+
+
+def test_reenabling_registration_restores_register_form(ui):
+    page, state = ui
+    state["configs"]["registration.enabled"] = dict(config_key="registration.enabled", config_value="false", description="Test registration", updated_at="2026-11-20T10:00:00")
+    open_as(page, "/admin-config")
+    page.get_by_label("Cho phép đăng ký tài khoản mới", exact=True).check()
+    page.get_by_role("button", name="Lưu thiết lập website", exact=True).click()
+    expect(page.get_by_role("status")).to_contain_text("Đã lưu thiết lập website")
+    page.get_by_role("button", name="Đăng xuất", exact=True).click()
+    page.get_by_role("link", name="Đăng ký", exact=True).click()
+    expect(page.get_by_role("heading", name="Tạo tài khoản", exact=True)).to_be_visible()
+    expect(page.get_by_label("Email", exact=True)).to_be_visible()

@@ -5,9 +5,11 @@ import { useAuth } from "@/features/auth/hooks/useAuth";
 import { Icon } from "@/shared/components/Icon";
 import { getApiErrorMessage } from "@/shared/api/client";
 import { getStatistics } from "../api/dashboardApi";
+import { useSiteSettings } from "@/features/admin-config/SiteSettings";
 
 export function Dashboard() {
   const { user } = useAuth();
+  const { settings } = useSiteSettings();
   const canViewStatistics = ["admin", "family_head"].includes(user.role);
   const query = useQuery({
     queryKey: ["dashboard-statistics", user.id, user.role],
@@ -35,10 +37,10 @@ export function Dashboard() {
         : query.isError ? <p role="alert" className="form-error">{getApiErrorMessage(query.error)}</p>
           : rows.length === 0 ? <div className="empty-panel"><Icon name="house" /><p>Chưa có gia đình trong phạm vi thống kê của bạn.</p></div>
             : <><dl className="stat-grid">{cards.map((card) => <div key={card.label} className="stat-card"><dt><span>{card.label}</span><Icon name={card.icon} /></dt><dd>{card.value.toLocaleString("vi-VN")}</dd></div>)}</dl>
-              <div className="chart-panel"><div className="section-heading"><h3>Thống kê theo gia đình</h3><span>Thành viên · Bài viết · Sự kiện</span></div><div role="img" aria-label="Biểu đồ số thành viên, bài viết và sự kiện theo gia đình" className="h-80 min-w-0"><ResponsiveContainer width="100%" height="100%"><BarChart data={rows} margin={{ top: 10, right: 10, left: -20, bottom: 10 }}><CartesianGrid stroke="#e5e8df" strokeDasharray="3 3" vertical={false} /><XAxis dataKey="family_name" tick={{ fontSize: 13, fill: "#60695f" }} tickLine={false} axisLine={false} /><YAxis allowDecimals={false} tick={{ fontSize: 13, fill: "#60695f" }} tickLine={false} axisLine={false} /><Tooltip /><Legend /><Bar dataKey="member_count" name="Thành viên" fill="#244b3e" radius={[4, 4, 0, 0]} /><Bar dataKey="post_count" name="Bài viết" fill="#92ad82" radius={[4, 4, 0, 0]} /><Bar dataKey="event_count" name="Sự kiện" fill="#c79666" radius={[4, 4, 0, 0]} /></BarChart></ResponsiveContainer></div>
+              <div className="chart-panel"><div className="section-heading"><h3>Thống kê theo gia đình</h3><span>Thành viên · Bài viết · Sự kiện</span></div><div role="img" aria-label="Biểu đồ số thành viên, bài viết và sự kiện theo gia đình" className="h-80 min-w-0"><ResponsiveContainer width="100%" height="100%"><BarChart data={rows} margin={{ top: 10, right: 10, left: -20, bottom: 10 }}><CartesianGrid stroke="#e5e8df" strokeDasharray="3 3" vertical={false} /><XAxis dataKey="family_name" tick={{ fontSize: 13, fill: "#60695f" }} tickLine={false} axisLine={false} /><YAxis allowDecimals={false} tick={{ fontSize: 13, fill: "#60695f" }} tickLine={false} axisLine={false} /><Tooltip /><Legend /><Bar dataKey="member_count" name="Thành viên" fill="var(--p-accent)" radius={[4, 4, 0, 0]} /><Bar dataKey="post_count" name="Bài viết" fill="#92ad82" radius={[4, 4, 0, 0]} /><Bar dataKey="event_count" name="Sự kiện" fill="#c79666" radius={[4, 4, 0, 0]} /></BarChart></ResponsiveContainer></div>
                 <div className="data-table-scroll"><table className="w-full text-left text-sm"><caption className="sr-only">Số liệu hoạt động theo gia đình</caption><thead><tr><th scope="col">Gia đình</th><th scope="col">Thành viên</th><th scope="col">Bài viết</th><th scope="col">Sự kiện</th></tr></thead><tbody>{rows.map((row) => <tr key={row.family_id}><th scope="row">{row.family_name}</th><td>{row.member_count}</td><td>{row.post_count}</td><td>{row.event_count}</td></tr>)}</tbody></table></div>
               </div></>}
-    </section> : <aside className="family-note"><Icon name="heart-handshake" /><div><h2>{user.role === "guest" ? "Chào mừng đến với FamilyConnect" : "Gia đình bắt đầu từ sự kết nối"}</h2><p>{user.role === "guest" ? "Liên hệ người quản lý gia đình để được xác minh và truy cập gia phả, di sản." : "Chưa thấy gia đình của mình? Liên hệ người quản lý để xác minh và liên kết hồ sơ thành viên."}</p></div></aside>}
-    <footer className="workspace-footer"><span>FamilyConnect</span><span>Gìn giữ hôm nay, tiếp nối mai sau.</span></footer>
+    </section> : <aside className="family-note"><Icon name="heart-handshake" /><div><h2>{user.role === "guest" ? `Chào mừng đến với ${settings.site_name}` : "Gia đình bắt đầu từ sự kết nối"}</h2><p>{user.role === "guest" ? "Liên hệ người quản lý gia đình để được xác minh và truy cập gia phả, di sản." : "Chưa thấy gia đình của mình? Liên hệ người quản lý để xác minh và liên kết hồ sơ thành viên."}</p></div></aside>}
+    <footer className="workspace-footer"><span>{settings.site_name}</span><span>Gìn giữ hôm nay, tiếp nối mai sau.</span></footer>
   </div>;
 }

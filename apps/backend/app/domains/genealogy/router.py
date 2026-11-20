@@ -2,7 +2,7 @@ from datetime import date
 from typing import Annotated, Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_current_user, get_db, require_role
@@ -65,6 +65,8 @@ def profile(db: DB, actor: Actor):
 @router.put("/me")
 def update_profile(payload: ProfileFields, db: DB, actor: Actor):
     def operation():
+        if repo.profile(db, actor.id)["member"] and (payload.birth_date is None or not payload.location):
+            raise HTTPException(422, "Cần nhập đầy đủ ngày sinh và nơi ở của hồ sơ đã liên kết.")
         repo.execute(
             db,
             "EXEC genealogy.usp_UpdateOwnProfile @ActorUserId=:actor,@Name=:name,@BirthDate=:birth_date,@Location=:location",
@@ -121,6 +123,8 @@ def relationships(family_id: UUID, db: DB, actor: Member, member_id: UUID | None
 
 @router.post("/relationships/{kind}", status_code=201)
 def add_relationship(kind: Kind, family_id: UUID, payload: RelationshipFields, db: DB, actor: Manager):
+    if kind == "marriages" and payload.married_date is None:
+        raise HTTPException(422, "Cần nhập ngày kết hôn.")
     params = dict(actor=actor.id, family=family_id, kind=kind, **payload.model_dump())
     return run(
         db,

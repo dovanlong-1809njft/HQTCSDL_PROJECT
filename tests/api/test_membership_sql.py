@@ -27,7 +27,7 @@ def call(client, method, path, body=None, user=1, family=1001):
 
 
 def member(client, name, **values):
-    response=call(client,"POST","/members",dict(name=name,**values))
+    response=call(client,"POST","/members",dict(name=name,**{"branch_id":uid(2001),"birth_date":"1980-01-01","location":"Test place",**values}))
     assert response.status_code==201,response.text
     return response.json()["id"]
 
@@ -102,13 +102,13 @@ def test_family_branch_member_crud_and_constraints(membership_api):
     branch=call(client,"POST","/branches",{"name":"New branch"}).json()["id"]
     person=member(client,"New person",branch_id=branch)
     assert call(client,"DELETE",f"/branches/{branch}").status_code==409
-    assert call(client,"PUT",f"/members/{person}",{"name":"Renamed person","birth_date":"2000-01-01"}).status_code==200
+    assert call(client,"PUT",f"/members/{person}",{"name":"Renamed person","branch_id":branch,"birth_date":"2000-01-01","location":"Test place"}).status_code==200
     assert call(client,"PUT",f"/branches/{branch}",{"name":"Renamed branch"}).status_code==200
     assert call(client,"POST","/branches",{"name":"Renamed branch"}).status_code==409
     assert call(client,"DELETE",f"/members/{person}").status_code==204
     assert call(client,"DELETE",f"/branches/{branch}").status_code==204
     assert call(client,"DELETE",f"/members/{uid(3014)}").status_code==409
-    assert call(client,"POST","/members",{"name":"Wrong branch","branch_id":uid(2003)}).status_code==422
+    assert call(client,"POST","/members",{"name":"Wrong branch","branch_id":uid(2003),"birth_date":"1980-01-01","location":"Test place"}).status_code==422
     assert scalar(engine,"SELECT COUNT(*) FROM reports.AuditLog WHERE Action LIKE 'genealogy.%'")>=8
 
 
@@ -116,16 +116,16 @@ def test_family_branch_member_crud_and_constraints(membership_api):
 def test_write_denied_for_role_or_foreign_family(membership_api,user,family):
     client,engine,_=membership_api
     before=scalar(engine,"SELECT COUNT(*) FROM genealogy.Members")
-    assert call(client,"POST","/members",{"name":"Forbidden"},user=user,family=family).status_code==403
+    assert call(client,"POST","/members",{"name":"Forbidden","branch_id":uid(2001),"birth_date":"1980-01-01","location":"Test place"},user=user,family=family).status_code==403
     assert scalar(engine,"SELECT COUNT(*) FROM genealogy.Members")==before
 
 
 def test_head_cannot_move_members_to_bypass_branch_approval(membership_api):
     client,engine,_=membership_api
-    assert call(client,"PUT",f"/members/{uid(3002)}",{"name":"Target B","branch_id":uid(2001)},user=2).status_code==403
-    assert call(client,"PUT",f"/members/{uid(3010)}",{"name":"Head A","branch_id":uid(2002)},user=2).status_code==403
+    assert call(client,"PUT",f"/members/{uid(3002)}",{"name":"Target B","branch_id":uid(2001),"birth_date":"1980-01-01","location":"Test place"},user=2).status_code==403
+    assert call(client,"PUT",f"/members/{uid(3010)}",{"name":"Head A","branch_id":uid(2002),"birth_date":"1980-01-01","location":"Test place"},user=2).status_code==403
     assert str(scalar(engine,"SELECT BranchId FROM genealogy.Members WHERE Id=:id",id=uid(3010))).lower()==uid(2001)
-    assert call(client,"POST","/members",{"name":"New in own branch","branch_id":uid(2001)},user=2).status_code==201
+    assert call(client,"POST","/members",{"name":"New in own branch","branch_id":uid(2001),"birth_date":"1980-01-01","location":"Test place"},user=2).status_code==201
     assert call(client,"POST","/branches",{"name":"Unmanaged new branch"},user=2).status_code==403
     assert call(client,"PUT",f"/branches/{uid(2001)}",{"name":"Renamed own branch"},user=2).status_code==200
     own=call(client,"GET","/members",user=2).json()["items"]
@@ -139,7 +139,7 @@ def test_relationship_rules_and_closure_after_removal(membership_api):
     client,_,_=membership_api
     a,b,c,d=[member(client,name) for name in ("Ancestor","Parent one","Parent two","Child")]
     def edge(first,second,kind="parent-child"):
-        return call(client,"POST","/relationships/"+kind,dict(first_id=first,second_id=second))
+        return call(client,"POST","/relationships/"+kind,dict(first_id=first,second_id=second,married_date="2020-01-01" if kind=="marriages" else None))
     assert edge(a,b).status_code==201
     assert edge(a,c).status_code==201
     bd=edge(b,d).json()["id"]
@@ -153,6 +153,9 @@ def test_relationship_rules_and_closure_after_removal(membership_api):
     assert call(client,"DELETE",f"/members/{b}").status_code==409
     path=f"/api/genealogy/relationships?family_id={uid(1001)}&member_id={d}"
     assert {r["id"]:r["depth"] for r in client.get(path,headers=headers()).json()["ancestors"]}[a]==2
+    descendants=client.get(f"/api/genealogy/relationships?family_id={uid(1001)}&member_id={a}",headers=headers()).json()["descendants"]
+    assert {row["id"]:row["depth"] for row in descendants}[d]==2
+    assert all(set(row)=={"id","name","depth"} for row in descendants)
     assert call(client,"DELETE",f"/relationships/parent-child/{bd}").status_code==204
     ancestors=client.get(path,headers=headers()).json()["ancestors"]
     assert a in {r["id"] for r in ancestors} and b not in {r["id"] for r in ancestors}
@@ -169,7 +172,7 @@ def test_failed_audit_rolls_back_data(membership_api):
     client,engine,options=membership_api
     options["fail_audit"]=True
     before=scalar(engine,"SELECT COUNT(*) FROM genealogy.Members")
-    assert call(client,"POST","/members",{"name":"Must roll back"}).status_code==500
+    assert call(client,"POST","/members",{"name":"Must roll back","branch_id":uid(2001),"birth_date":"1980-01-01","location":"Test place"}).status_code==500
     assert scalar(engine,"SELECT COUNT(*) FROM genealogy.Members")==before
 
 

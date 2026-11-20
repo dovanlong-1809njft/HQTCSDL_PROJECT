@@ -317,3 +317,48 @@ def test_khong_co_token_thi_bi_chan():
         response = anonymous.get("/api/community/posts", params={"family_id": str(FAMILY_ID)})
 
     assert response.status_code in (401, 403)
+
+
+@pytest.mark.parametrize("method,path,payload,required", [
+    ("POST", "/api/auth/register", dict(full_name="Test member", email="member@example.com", password="Password!2026"), ("full_name", "email", "password")),
+    ("POST", "/api/auth/login", dict(email="member@example.com", password="Password!2026"), ("email", "password")),
+    ("POST", "/api/admin/configs", dict(config_key="test.required", config_value="value", description="Test config"), ("config_key", "config_value", "description")),
+    ("PUT", "/api/admin/configs/test.required", dict(config_value="value", description="Test config"), ("config_value", "description")),
+    ("POST", "/api/events", dict(family_id=str(FAMILY_ID), title="Test event", event_date="2027-01-01T10:00:00", location="Test place"), ("family_id", "title", "event_date", "location")),
+    ("PUT", f"/api/events/{EVENT_ID}", dict(title="Test event", event_date="2027-01-01T10:00:00", location="Test place"), ("title", "event_date", "location")),
+    ("POST", f"/api/genealogy/members?family_id={FAMILY_ID}", dict(name="Test member", branch_id=str(FAMILY_ID), birth_date="1990-01-01", location="Test place"), ("name", "branch_id", "birth_date", "location")),
+    ("PUT", f"/api/genealogy/members/{MEMBER_ID}?family_id={FAMILY_ID}", dict(name="Test member", branch_id=str(FAMILY_ID), birth_date="1990-01-01", location="Test place"), ("name", "branch_id", "birth_date", "location")),
+    ("PUT", "/api/genealogy/me", dict(name="Test member", birth_date="1990-01-01", location="Test place"), ("name", "birth_date", "location")),
+    ("POST", f"/api/genealogy/relationships/marriages?family_id={FAMILY_ID}", dict(first_id=str(USER_ID), second_id=str(MEMBER_ID), married_date="2020-01-01"), ("first_id", "second_id", "married_date")),
+    ("POST", f"/api/directory/{MEMBER_ID}/educations", dict(institution="Test school", degree="Test degree", start_date="2020-01-01"), ("institution", "degree", "start_date")),
+    ("PUT", f"/api/directory/{MEMBER_ID}/work/{USER_ID}", dict(company="Test company", position="Test job", start_date="2020-01-01"), ("company", "position", "start_date")),
+    ("POST", f"/api/heritage/items?family_id={FAMILY_ID}", dict(type="story", title="Test story", description="Test description", content="Test content"), ("type", "title", "description", "content")),
+    ("POST", f"/api/heritage/honors?family_id={FAMILY_ID}", dict(member_id=str(MEMBER_ID), title="Test honor", description="Test description", date_awarded="2020-01-01"), ("member_id", "title", "description", "date_awarded")),
+    ("POST", "/api/community/posts", dict(family_id=str(FAMILY_ID), content="Test content"), ("family_id", "content")),
+    ("POST", f"/api/community/posts/{POST_ID}/comments", dict(content="Test comment"), ("content",)),
+    ("POST", "/api/community/reports", dict(target_id=str(POST_ID), target_type="post", reason="Test reason"), ("target_id", "target_type", "reason")),
+    ("POST", f"/api/events/{EVENT_ID}/gallery", dict(media_url="https://example.com/photo.jpg"), ("media_url",)),
+    ("POST", f"/api/events/{EVENT_ID}/reminders", dict(reminder_time="2027-01-01T09:00:00"), ("reminder_time",)),
+])
+@pytest.mark.parametrize("invalid", ["missing", None, "", " \t\n\u00a0 "])
+def test_required_web_inputs_cannot_bypass_api(client, session, monkeypatch, method, path, payload, required, invalid):
+    from app.domains.genealogy import repository
+    session.user.role = "admin"
+    monkeypatch.setattr(repository, "profile", lambda *_: {"member": {"id": str(MEMBER_ID)}})
+    for field in required:
+        body = dict(payload)
+        if invalid == "missing":
+            del body[field]
+        else:
+            body[field] = invalid
+        response = client.request(method, path, json=body)
+        assert response.status_code == 422, (path, field, invalid, response.text)
+    assert session.commits == 0
+    assert not session.statements
+
+
+def test_valid_registration_trims_name_but_preserves_password():
+    from app.domains.identity.schemas import RegisterRequest
+    payload = RegisterRequest(full_name="  Test member  ", email="member@example.com", password=" Password!2026 ")
+    assert payload.full_name == "Test member"
+    assert payload.password == " Password!2026 "

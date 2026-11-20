@@ -1,11 +1,13 @@
 import { Link } from "react-router-dom";
 import { Brand } from "@/shared/components/Brand";
 import { Icon } from "@/shared/components/Icon";
+import { useSiteSettings } from "@/features/admin-config/SiteSettings";
 
 export function AuthLayout({ children, registering = false }) {
+  const { settings, isPending, isError } = useSiteSettings();
   return <div className="auth-page">
     <a className="skip-link" href="#auth-main">Đến biểu mẫu</a>
-    <header className="auth-header"><Brand to="/login" /><p>{registering ? "Đã có tài khoản?" : "Chưa có tài khoản?"} <Link className="m-link" to={registering ? "/login" : "/register"}>{registering ? "Đăng nhập" : "Đăng ký"}<Icon name="arrow-up-right" /></Link></p></header>
+    <header className="auth-header"><Brand to="/login" />{(registering || (!isPending && !isError && settings.registration_enabled)) && <p>{registering ? "Đã có tài khoản?" : "Chưa có tài khoản?"} <Link className="m-link" to={registering ? "/login" : "/register"}>{registering ? "Đăng nhập" : "Đăng ký"}<Icon name="arrow-up-right" /></Link></p>}</header>
     <main id="auth-main" className="auth-page-main" tabIndex={-1}><section className="hero auth-screen" data-enter aria-label={registering ? "Đăng ký thành viên" : "Đăng nhập tài khoản"}><div className="auth-main wrap">
       <div className="auth-story">
         <div className="section-label"><span className="label-dot" /> Không gian gia đình số</div>
@@ -23,6 +25,6 @@ export function AuthLayout({ children, registering = false }) {
       </div>
       <div className="auth-form-panel">{children}</div>
     </div></section></main>
-    <footer className="auth-footer"><span>© {new Date().getFullYear()} FamilyConnect</span><span>Gia phả · Di sản · Kết nối thế hệ</span></footer>
+    <footer className="auth-footer"><span>© {new Date().getFullYear()} {settings.site_name}</span><span>Gia phả · Di sản · Kết nối thế hệ</span></footer>
   </div>;
 }

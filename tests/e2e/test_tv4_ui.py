@@ -30,6 +30,8 @@ def ui(e2e_browser, vite_server):
             path = urlparse(req.url).path
             if not path.startswith("/api/"):
                 route.continue_(); return
+            if path == "/api/settings":
+                route.fulfill(json=dict(site_name="FamilyConnect",logo_url="/favicon.svg",theme="forest",registration_enabled=True)); return
             params = parse_qs(urlparse(req.url).query)
             body = req.post_data_json if req.post_data else None
             state["requests"].append((req.method, path, params, body))
@@ -83,7 +85,7 @@ def test_heritage_detail_edit_and_optimistic_version(ui):
     open_as()
     expect(page.get_by_role("heading", name="Ký ức gia đình", exact=True)).to_be_visible()
     page.get_by_role("button", name="Chi tiết", exact=True).click()
-    expect(page.get_by_text("Nội dung ký ức", exact=True)).to_be_visible()
+    expect(page.get_by_role("region", name="Chi tiết", exact=True).get_by_text("Nội dung ký ức", exact=True)).to_be_visible()
     page.get_by_role("button", name="Sửa", exact=True).click()
     page.get_by_label("Tiêu đề", exact=True).fill("Ký ức được sửa")
     page.get_by_role("button", name="Lưu", exact=True).click()
@@ -160,11 +162,56 @@ def test_create_story_posts_real_contract(ui):
     open_as()
     page.get_by_role("button", name="Thêm di sản", exact=True).click()
     page.get_by_label("Tiêu đề", exact=True).fill("Câu chuyện mới")
+    page.get_by_label("Mô tả", exact=True).fill("Mô tả kiểm thử")
     page.get_by_label("Nội dung", exact=True).fill("Nội dung mới")
     page.get_by_role("button", name="Lưu", exact=True).click()
     expect(page.get_by_role("heading", name="Câu chuyện mới", exact=True)).to_be_visible()
     write = next(call for call in state["requests"] if call[0] == "POST")
-    assert write[3] == dict(type="story", title="Câu chuyện mới", content="Nội dung mới", description=None, media_url=None)
+    assert write[3] == dict(type="story", title="Câu chuyện mới", content="Nội dung mới", description="Mô tả kiểm thử", media_url=None)
+
+
+@pytest.mark.parametrize("label", ["Tiêu đề", "Mô tả", "Nội dung"])
+@pytest.mark.parametrize("invalid", ["", "   "])
+def test_story_requires_complete_information(ui, label, invalid):
+    page,state,open_as=ui
+    open_as()
+    page.get_by_role("button",name="Thêm di sản",exact=True).click()
+    for name,value in [("Tiêu đề","Test story"),("Mô tả","Test description"),("Nội dung","Test content")]:
+        page.get_by_label(name,exact=True).fill(value)
+    control=page.get_by_label(label,exact=True)
+    control.fill(invalid)
+    page.get_by_role("button",name="Lưu",exact=True).click()
+    assert control.evaluate("field => !field.validity.valid")
+    assert not any(row[0]=="POST" for row in state["requests"])
+
+
+def test_honor_requires_award_date(ui):
+    page,state,open_as=ui
+    open_as()
+    page.get_by_role("button",name="Vinh danh",exact=True).click()
+    page.get_by_role("button",name="Thêm vinh danh",exact=True).click()
+    page.get_by_label("Thành viên được vinh danh",exact=True).select_option(MEMBER)
+    page.get_by_label("Tiêu đề",exact=True).fill("Test honor")
+    page.get_by_label("Mô tả",exact=True).fill("Test description")
+    page.get_by_role("button",name="Lưu",exact=True).click()
+    assert page.get_by_label("Ngày trao",exact=True).evaluate("field => !field.validity.valid")
+    assert not any(row[0]=="POST" for row in state["requests"])
+
+
+def test_changing_heritage_type_clears_previous_required_error(ui):
+    page,state,open_as=ui
+    open_as()
+    page.get_by_role("button",name="Thêm di sản",exact=True).click()
+    page.get_by_label("Tiêu đề",exact=True).fill("Test document")
+    page.get_by_label("Mô tả",exact=True).fill("Test description")
+    page.get_by_label("Nội dung",exact=True).fill("   ")
+    page.get_by_role("button",name="Lưu",exact=True).click()
+    assert page.get_by_label("Nội dung",exact=True).evaluate("field => !field.validity.valid")
+    page.get_by_label("Loại",exact=True).select_option("document")
+    page.get_by_label("URL ảnh / video / tài liệu (HTTPS hoặc /media/)",exact=True).fill("/media/test.pdf")
+    page.get_by_role("button",name="Lưu",exact=True).click()
+    expect(page.get_by_role("heading",name="Test document",exact=True)).to_be_visible()
+    assert next(row[3] for row in state["requests"] if row[0]=="POST")["content"] is None
 
 
 def test_unsafe_legacy_media_url_is_not_rendered(ui):

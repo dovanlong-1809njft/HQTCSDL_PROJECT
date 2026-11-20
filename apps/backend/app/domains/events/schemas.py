@@ -11,7 +11,7 @@ class EventCreateRequest(BaseModel):
     family_id: UUID
     title: str = Field(min_length=1, max_length=200)
     event_date: datetime
-    location: str | None = Field(default=None, max_length=500)
+    location: str = Field(min_length=1, max_length=500)
 
     @field_validator("event_date")
     @classmethod

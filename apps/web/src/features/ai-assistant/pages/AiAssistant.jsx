@@ -235,6 +235,7 @@ export function AiAssistant() {
               <textarea
                 rows={3}
                 value={queryText}
+                maxLength={2000}
                 onChange={(e) => setQueryText(e.target.value)}
                 className="mt-1 w-full rounded-lg border border-slate-300 p-3 text-sm"
                 placeholder="Nhập câu hỏi bằng tiếng Việt tự nhiên..."
@@ -249,6 +250,7 @@ export function AiAssistant() {
                   min={1}
                   max={10}
                   value={topK}
+                  required
                   onChange={(e) => setTopK(e.target.value)}
                   className="w-20 rounded border px-2 py-1"
                 />
@@ -436,6 +438,8 @@ export function AiAssistant() {
                   <input
                     type="text"
                     value={customTitle}
+                    required
+                    maxLength={300}
                     onChange={(e) => setCustomTitle(e.target.value)}
                     className="mt-1 w-full rounded-lg border p-2.5 text-sm"
                     placeholder="Nhập tiêu đề văn bản..."
@@ -448,6 +452,8 @@ export function AiAssistant() {
                   <textarea
                     rows={4}
                     value={customContent}
+                    required
+                    maxLength={20000}
                     onChange={(e) => setCustomContent(e.target.value)}
                     className="mt-1 w-full rounded-lg border p-2.5 text-sm"
                     placeholder="Dán nội dung câu chuyện hoặc tài liệu dài vào đây..."
@@ -464,6 +470,7 @@ export function AiAssistant() {
                   min={1}
                   max={10}
                   value={maxSentences}
+                  required
                   onChange={(e) => setMaxSentences(e.target.value)}
                   className="w-20 rounded border px-2 py-1"
                 />
@@ -528,6 +535,8 @@ export function AiAssistant() {
                 <input
                   type="text"
                   value={topicQuery}
+                  required={!anchorMemberId}
+                  maxLength={500}
                   onChange={(e) => setTopicQuery(e.target.value)}
                   placeholder="Để trống sẽ tự động tổng hợp từ nghề nghiệp & chi họ..."
                   className="mt-1 w-full rounded-lg border p-2.5 text-sm"

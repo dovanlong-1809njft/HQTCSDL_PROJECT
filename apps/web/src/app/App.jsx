@@ -7,6 +7,7 @@ import { Login } from "@/features/auth/pages/Login";
 import { Register } from "@/features/auth/pages/Register";
 import { ProtectedRoute } from "@/features/auth/components/ProtectedRoute";
 import { AdminConfig } from "@/features/admin-config/pages/AdminConfig";
+import { SiteSettingsProvider } from "@/features/admin-config/SiteSettings";
 import { MemberApproval } from "@/features/member-approval/pages/MemberApproval";
 import { Reports } from "@/features/reports/pages/Reports";
 import { Profile } from "@/features/genealogy/pages/Profile";
@@ -40,6 +41,7 @@ const queryClient = new QueryClient({
 export function App() {
   return (
     <QueryClientProvider client={queryClient}>
+      <SiteSettingsProvider>
       <AuthProvider>
         <BrowserRouter>
           <Routes>
@@ -112,6 +114,7 @@ export function App() {
           </Routes>
         </BrowserRouter>
       </AuthProvider>
+      </SiteSettingsProvider>
     </QueryClientProvider>
   );
 }
