@@ -14,7 +14,8 @@ async function setup(page){
   await page.route(url=>url.pathname.startsWith("/api/"),async route=>{
     const path=new URL(route.request().url()).pathname,method=route.request().method();
     let data=[];
-    if(path.endsWith("/reactions")){
+    if(path==="/api/settings")data={site_name:"FamilyConnect",logo_url:"/favicon.svg",theme:"forest",registration_enabled:true};
+    else if(path.endsWith("/reactions")){
       state.requests++;
       await new Promise(resolve=>setTimeout(resolve,100));
       if(state.fail){state.fail=false;return route.fulfill({status:500,json:{detail:"Không lưu được cảm xúc thử nghiệm."}});}

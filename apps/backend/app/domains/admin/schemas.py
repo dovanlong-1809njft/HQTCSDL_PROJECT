@@ -1,12 +1,50 @@
 from datetime import date, datetime
 from typing import Annotated, Literal
 from uuid import UUID
+from urllib.parse import urlsplit
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, StringConstraints, field_validator
 
 
 ConfigKey = Annotated[str, StringConstraints(min_length=1, max_length=100, pattern=r"^[A-Za-z0-9_.-]+$")]
 ReportStatus = Literal["pending", "resolved", "dismissed"]
+
+
+class SiteSettings(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    site_name: str = Field(min_length=1, max_length=60)
+    logo_url: str = Field(min_length=1, max_length=2048)
+    theme: Literal["forest", "ocean", "warm"]
+    registration_enabled: StrictBool
+
+    @field_validator("logo_url")
+    @classmethod
+    def safe_logo(cls, value):
+        if any(character.isspace() or ord(character) < 32 or character == "\\" for character in value):
+            raise ValueError("URL logo không hợp lệ.")
+        parsed = urlsplit(value)
+        local = value.startswith("/") and not value.startswith("//")
+        remote = parsed.scheme == "https" and parsed.hostname and not parsed.username and not parsed.password
+        if not (local or remote):
+            raise ValueError("Logo cần URL HTTPS hoặc đường dẫn bắt đầu bằng /.")
+        return value
+
+    @field_validator("registration_enabled", mode="before")
+    @classmethod
+    def stored_boolean(cls, value):
+        if isinstance(value, str) and value.lower() in ("true", "false"):
+            return value.lower() == "true"
+        return value
+
+
+DEFAULT_SITE_SETTINGS = SiteSettings(site_name="FamilyConnect", logo_url="/favicon.svg", theme="forest", registration_enabled=True)
+SITE_CONFIG_KEYS = {
+    "site.name": ("site_name", "Tên hiển thị của website"),
+    "site.logo_url": ("logo_url", "Đường dẫn logo website"),
+    "site.theme": ("theme", "Màu giao diện website"),
+    "registration.enabled": ("registration_enabled", "Cho phép đăng ký tài khoản mới"),
+}
 
 
 class AdminSchema(BaseModel):

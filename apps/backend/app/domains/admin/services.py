@@ -4,11 +4,15 @@ from typing import TypeVar
 from uuid import UUID
 
 from fastapi import HTTPException
+from pydantic import ValidationError
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import Session
 
 from app.domains.admin import repository
 from app.domains.admin.schemas import (
+    DEFAULT_SITE_SETTINGS,
+    SITE_CONFIG_KEYS,
+    SiteSettings,
     FamilyActivityResponse,
     PendingVerificationResponse,
     ReportedContentResponse,
@@ -88,6 +92,45 @@ def list_configs(db: Session, *, limit: int, offset: int) -> list[SystemConfigRe
                                 for row in repository.list_configs(db, limit=limit, offset=offset)])
 
 
+def get_site_settings(db: Session) -> SiteSettings:
+    def operation():
+        values = DEFAULT_SITE_SETTINGS.model_dump()
+        for row in repository.get_site_configs(db):
+            key = row["ConfigKey"].lower()
+            if key in SITE_CONFIG_KEYS:
+                values[SITE_CONFIG_KEYS[key][0]] = row["ConfigValue"]
+        try:
+            return SiteSettings.model_validate(values)
+        except ValidationError:
+            raise HTTPException(503, "Thiết lập website chưa hợp lệ. Vui lòng liên hệ quản trị viên.") from None
+    return _execute(db, operation)
+
+
+def save_site_settings(db: Session, payload: SiteSettings, actor_id: UUID) -> SiteSettings:
+    def operation():
+        existing = {row["ConfigKey"].lower() for row in repository.get_site_configs(db)}
+        for key, (field, description) in SITE_CONFIG_KEYS.items():
+            value = getattr(payload, field)
+            value = str(value).lower() if isinstance(value, bool) else value
+            write = repository.update_config if key in existing else repository.create_config
+            write(db, actor_id=actor_id, config_key=key, config_value=value, description=description)
+        return payload
+    return _execute(db, operation, write=True)
+
+
+def _checked_config_value(config_key: str, value: str) -> str:
+    setting = SITE_CONFIG_KEYS.get(config_key.lower())
+    if setting is None:
+        return value
+    field = setting[0]
+    try:
+        checked = SiteSettings.model_validate({**DEFAULT_SITE_SETTINGS.model_dump(), field: value})
+    except ValidationError:
+        raise HTTPException(422, "Giá trị thiết lập website không hợp lệ. Kiểm tra tên, URL logo, màu giao diện hoặc true/false cho đăng ký.") from None
+    result = getattr(checked, field)
+    return str(result).lower() if isinstance(result, bool) else result
+
+
 def get_config(db: Session, config_key: str) -> SystemConfigResponse:
     def operation() -> SystemConfigResponse:
         row = repository.get_config(db, config_key)
@@ -98,12 +141,14 @@ def get_config(db: Session, config_key: str) -> SystemConfigResponse:
 
 
 def create_config(db: Session, payload: SystemConfigCreate, actor_id: UUID) -> SystemConfigResponse:
+    payload = payload.model_copy(update={"config_value": _checked_config_value(payload.config_key, payload.config_value)})
     return _execute(db, lambda: SystemConfigResponse.model_validate(repository.create_config(
         db, actor_id=actor_id, **payload.model_dump())), write=True)
 
 
 def update_config(db: Session, config_key: str, payload: SystemConfigUpdate,
                   actor_id: UUID) -> SystemConfigResponse:
+    payload = payload.model_copy(update={"config_value": _checked_config_value(config_key, payload.config_value)})
     return _execute(db, lambda: SystemConfigResponse.model_validate(repository.update_config(
         db, actor_id=actor_id, config_key=config_key, **payload.model_dump())), write=True)
 

@@ -1,18 +1,23 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import { AuthLayout } from "@/shared/layouts/AuthLayout";
 import { Icon } from "@/shared/components/Icon";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { getApiErrorMessage } from "@/shared/api/client";
+import { useSiteSettings } from "@/features/admin-config/SiteSettings";
 
 export function Register() {
   const { signUp, isAuthenticated } = useAuth();
+  const site = useSiteSettings();
   const navigate = useNavigate();
   const [submitError, setSubmitError] = useState("");
   const { register, handleSubmit, watch, formState: { errors, isSubmitting } } = useForm();
 
   if (isAuthenticated) return <Navigate to="/dashboard" replace />;
+  if (site.isPending) return <AuthLayout registering><p role="status">Đang tải thiết lập đăng ký…</p></AuthLayout>;
+  if (site.isError) return <AuthLayout registering><p role="alert">Chưa tải được thiết lập đăng ký. Vui lòng thử lại.</p><button type="button" className="btn btn--primary" onClick={() => site.refetch()}>Thử lại</button></AuthLayout>;
+  if (!site.settings.registration_enabled) return <AuthLayout registering><div className="auth-form-heading"><h1>Đăng ký đang tạm đóng</h1><p>Vui lòng liên hệ quản trị viên để được hỗ trợ. Nếu đã có tài khoản, bạn vẫn có thể đăng nhập.</p></div><Link className="btn btn--primary mt-6" to="/login">Đăng nhập</Link></AuthLayout>;
 
   const onSubmit = async (values) => {
     setSubmitError("");
@@ -21,6 +26,7 @@ export function Register() {
       navigate("/dashboard", { replace: true });
     } catch (error) {
       setSubmitError(getApiErrorMessage(error));
+      if (error.response?.status === 403) site.refetch();
     }
   };
 

@@ -31,6 +31,13 @@ def list_configs(db: Session, *, limit: int, offset: int) -> list[Mapping[str, A
     """), {"limit": limit, "offset": offset}).mappings().all())
 
 
+def get_site_configs(db: Session) -> list[Mapping[str, Any]]:
+    return list(db.execute(text("""
+        SELECT ConfigKey, ConfigValue FROM core.SystemConfigs
+        WHERE ConfigKey IN ('site.name', 'site.logo_url', 'site.theme', 'registration.enabled')
+    """)).mappings().all())
+
+
 def get_config(db: Session, config_key: str) -> Mapping[str, Any] | None:
     return db.execute(text("""
         SELECT ConfigKey, ConfigValue, Description, UpdatedAt

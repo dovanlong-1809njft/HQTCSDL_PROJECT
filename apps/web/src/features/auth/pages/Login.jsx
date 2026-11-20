@@ -4,9 +4,11 @@ import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { AuthLayout } from "@/shared/layouts/AuthLayout";
 import { Icon } from "@/shared/components/Icon";
 import { useAuth } from "@/features/auth/hooks/useAuth";
+import { useSiteSettings } from "@/features/admin-config/SiteSettings";
 
 export function Login() {
   const { signIn, isAuthenticated } = useAuth();
+  const { settings } = useSiteSettings();
   const navigate = useNavigate();
   const location = useLocation();
   const [submitError, setSubmitError] = useState("");
@@ -34,7 +36,7 @@ export function Login() {
       <button type="submit" disabled={isSubmitting} className="btn btn--primary auth-submit">{isSubmitting ? "Đang đăng nhập…" : <>Đăng nhập <Icon name="arrow-right" /></>}</button>
       <p role="status" className="sr-only">{isSubmitting ? "Đang đăng nhập…" : ""}</p>
     </form>
-    <p className="auth-note"><Icon name="lock-keyhole" /> Dùng tài khoản đã đăng ký với FamilyConnect.</p>
+    <p className="auth-note"><Icon name="lock-keyhole" /> Dùng tài khoản đã đăng ký với {settings.site_name}.</p>
     {import.meta.env.VITE_ENABLE_MOCK_AUTH === "true" && <p className="demo-note">Tài khoản demo: demo@familyconnect.vn · Family123!</p>}
   </AuthLayout>;
 }

@@ -2,8 +2,10 @@
 import { NavLink } from "react-router-dom";
 import { Brand } from "@/shared/components/Brand";
 import { Icon } from "@/shared/components/Icon";
+import { useSiteSettings } from "@/features/admin-config/SiteSettings";
 
 export function Sidebar({ role, open, onClose }) {
+  const { settings } = useSiteSettings();
   const aside = useRef(null);
   const canManage = role === "admin" || role === "family_head";
   const links = [
@@ -157,7 +159,7 @@ export function Sidebar({ role, open, onClose }) {
             <br />
             <span>một phần câu chuyện.</span>
           </p>
-          <span className="sidebar-footer-brand">FamilyConnect</span>
+          <span className="sidebar-footer-brand">{settings.site_name}</span>
         </div>
       </aside>
     </>

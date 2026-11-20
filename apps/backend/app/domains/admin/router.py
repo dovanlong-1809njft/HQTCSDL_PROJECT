@@ -19,16 +19,29 @@ from app.domains.admin.schemas import (
     SystemConfigCreate,
     SystemConfigResponse,
     SystemConfigUpdate,
+    SiteSettings,
 )
 from app.domains.identity.models import User
 
 router = APIRouter(prefix="/admin", tags=["admin"])
+public_router = APIRouter(prefix="/settings", tags=["settings"])
 
 Database = Annotated[Session, Depends(get_db)]
 Admin = Annotated[User, Depends(require_role("admin"))]
 Reviewer = Annotated[User, Depends(require_role("admin", "family_head"))]
 PageLimit = Annotated[int, Query(ge=1, le=200)]
 PageOffset = Annotated[int, Query(ge=0, le=2147483647)]
+
+
+@public_router.get("", response_model=SiteSettings)
+def public_site_settings(db: Database, response: Response) -> SiteSettings:
+    response.headers["Cache-Control"] = "no-store"
+    return services.get_site_settings(db)
+
+
+@router.put("/site-settings", response_model=SiteSettings)
+def save_site_settings(payload: SiteSettings, db: Database, current_user: Admin) -> SiteSettings:
+    return services.save_site_settings(db, payload, current_user.id)
 
 
 @router.get("/configs", response_model=list[SystemConfigResponse])

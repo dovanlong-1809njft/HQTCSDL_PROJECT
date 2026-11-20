@@ -130,6 +130,7 @@ def scalar(engine, sql: str, **params):
 
 
 ENDPOINTS = [
+    ("PUT", "/api/admin/site-settings", {"site_name": "Test website", "logo_url": "/favicon.svg", "theme": "forest", "registration_enabled": True}),
     ("GET", "/api/admin/configs", None),
     ("GET", "/api/admin/configs/site.name", None),
     ("POST", "/api/admin/configs", {"config_key": "site.name", "config_value": "FamilyConnect", "description": "Test config"}),
@@ -306,3 +307,101 @@ def test_failed_audit_rolls_back_the_entire_operation(api, action):
         assert scalar(engine, "SELECT Status FROM core.MemberVerifications WHERE Id=:id", id=uid(4001)) == "pending"
         assert scalar(engine, "SELECT Status FROM core.MemberVerifications WHERE Id=:id", id=uid(4002)) == "pending"
         assert scalar(engine, "SELECT UserId FROM genealogy.Members WHERE Id=:id", id=uid(3001)) is None
+
+
+SITE_SETTINGS = {"site_name": "Test website", "logo_url": "/assets/icons/ui-award.svg", "theme": "ocean", "registration_enabled": False}
+
+
+def test_public_settings_defaults_do_not_expose_private_configs(api):
+    from app.domains.admin.schemas import DEFAULT_SITE_SETTINGS
+    client, _, _ = api
+    assert client.post("/api/admin/configs", headers=headers(), json={"config_key": "private.test", "config_value": "test-only-private-value", "description": "Private test config"}).status_code == 201
+    result = client.get("/api/settings")
+    assert result.status_code == 200
+    assert result.json() == DEFAULT_SITE_SETTINGS.model_dump()
+    assert result.headers["cache-control"] == "no-store"
+    assert "test-only-private-value" not in result.text
+
+
+def test_site_settings_persist_and_audit_all_four_fields(api):
+    client, engine, _ = api
+    response = client.put("/api/admin/site-settings", headers=headers(), json=SITE_SETTINGS)
+    assert response.status_code == 200, response.text
+    assert response.json() == SITE_SETTINGS
+    assert client.get("/api/settings").json() == SITE_SETTINGS
+    assert scalar(engine, "SELECT COUNT(*) FROM core.SystemConfigs") == 4
+    assert scalar(engine, "SELECT COUNT(*) FROM reports.AuditLog WHERE Action LIKE 'system_config.created%'") == 4
+    assert scalar(engine, "SELECT ConfigValue FROM core.SystemConfigs WHERE ConfigKey='registration.enabled'") == "false"
+    updated = dict(SITE_SETTINGS, theme="warm", registration_enabled=True)
+    assert client.put("/api/admin/site-settings", headers=headers(), json=updated).status_code == 200
+    assert client.get("/api/settings").json() == updated
+    assert scalar(engine, "SELECT COUNT(*) FROM reports.AuditLog WHERE Action LIKE 'system_config.updated%'") == 4
+
+
+@pytest.mark.parametrize("field,value", [("site_name", "   "), ("site_name", "x" * 61), ("logo_url", "javascript:alert(1)"),
+    ("logo_url", "//evil.example/logo.png"), ("logo_url", "https://user:password@example.com/logo.png"),
+    ("logo_url", "http://example.com/logo.png"), ("logo_url", "/media/\\evil"), ("theme", "unknown"), ("registration_enabled", 1), ("registration_enabled", "yes")])
+def test_site_settings_reject_invalid_values_before_write(api, field, value):
+    client, engine, _ = api
+    response = client.put("/api/admin/site-settings", headers=headers(), json=dict(SITE_SETTINGS, **{field: value}))
+    assert response.status_code == 422
+    assert scalar(engine, "SELECT COUNT(*) FROM core.SystemConfigs") == 0
+
+
+@pytest.mark.parametrize("key,value", [("site.theme", "unknown"), ("SITE.LOGO_URL", "javascript:alert(1)"),
+    ("registration.enabled", "yes"), ("site.name", "x" * 61)])
+def test_generic_config_api_cannot_bypass_site_settings_validation(api, key, value):
+    client, engine, _ = api
+    response = client.post("/api/admin/configs", headers=headers(), json={"config_key": key, "config_value": value, "description": "Invalid test setting"})
+    assert response.status_code == 422
+    assert scalar(engine, "SELECT COUNT(*) FROM core.SystemConfigs") == 0
+
+
+def test_registration_toggle_blocks_api_but_keeps_existing_login(api):
+    client, engine, _ = api
+    assert client.put("/api/admin/site-settings", headers=headers(), json=SITE_SETTINGS).status_code == 200
+    before = scalar(engine, "SELECT COUNT(*) FROM core.Users")
+    account = dict(full_name="Settings test member", email="settings.new@example.com", password="SettingsTest!2026")
+    denied = client.post("/api/auth/register", json=account)
+    assert denied.status_code == 403, denied.text
+    assert scalar(engine, "SELECT COUNT(*) FROM core.Users") == before
+    assert client.post("/api/auth/login", json={"email": "admin@example.com", "password": "Task6-Test-Admin!2026"}).status_code == 200
+    assert client.put("/api/admin/site-settings", headers=headers(), json=dict(SITE_SETTINGS, registration_enabled=True)).status_code == 200
+    # The admin fixture normally grants SELECT on Users; registration needs its own INSERT grant.
+    with engine.begin() as connection:
+        connection.exec_driver_sql("GRANT INSERT ON OBJECT::core.Users TO task6_backend").close()
+    try:
+        created = client.post("/api/auth/register", json=account)
+    finally:
+        with engine.begin() as connection:
+            connection.exec_driver_sql("REVOKE INSERT ON OBJECT::core.Users FROM task6_backend").close()
+    assert created.status_code == 201, created.text
+    assert created.json()["user"]["role"] == "member"
+    assert scalar(engine, "SELECT COUNT(*) FROM core.Users") == before + 1
+
+
+def test_generic_config_edit_and_delete_update_public_settings(api):
+    client, _, _ = api
+    assert client.put("/api/admin/site-settings", headers=headers(), json=SITE_SETTINGS).status_code == 200
+    assert client.put("/api/admin/configs/site.theme", headers=headers(), json={"config_value": "forest", "description": "Test theme"}).status_code == 200
+    assert client.get("/api/settings").json()["theme"] == "forest"
+    assert client.put("/api/admin/configs/site.theme", headers=headers(), json={"config_value": "unknown", "description": "Invalid theme"}).status_code == 422
+    assert client.get("/api/settings").json()["theme"] == "forest"
+    assert client.delete("/api/admin/configs/site.name", headers=headers()).status_code == 204
+    assert client.get("/api/settings").json()["site_name"] == "FamilyConnect"
+
+
+def test_site_settings_batch_rolls_back_after_a_later_write_fails(api, monkeypatch):
+    from fastapi import HTTPException
+    from app.domains.admin import repository
+    client, engine, _ = api
+    original = repository.create_config
+    def fail_later(db, **values):
+        if values["config_key"] == "site.theme":
+            raise HTTPException(503, "Injected test failure")
+        return original(db, **values)
+    monkeypatch.setattr(repository, "create_config", fail_later)
+    result = client.put("/api/admin/site-settings", headers=headers(), json=SITE_SETTINGS)
+    assert result.status_code == 503
+    assert scalar(engine, "SELECT COUNT(*) FROM core.SystemConfigs") == 0
+    assert scalar(engine, "SELECT COUNT(*) FROM reports.AuditLog") == 0

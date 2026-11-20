@@ -6,9 +6,12 @@ from sqlalchemy.orm import Session
 from app.core.security import create_access_token, dummy_password_hash, hash_password, password_hash
 from app.domains.identity.models import User
 from app.domains.identity.schemas import AuthResponse, LoginRequest, RegisterRequest, UserResponse
+from app.domains.admin.services import get_site_settings
 
 
 def register_user(payload: RegisterRequest, db: Session) -> AuthResponse:
+    if not get_site_settings(db).registration_enabled:
+        raise HTTPException(status_code=403, detail="Hệ thống đang tạm đóng đăng ký tài khoản mới.")
     email = str(payload.email).strip().lower()
     existing = db.scalar(select(User).where(User.email == email))
     if existing:

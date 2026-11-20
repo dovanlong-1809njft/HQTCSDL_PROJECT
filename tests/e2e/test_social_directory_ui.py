@@ -31,6 +31,7 @@ def social_ui(e2e_browser,social_url):
         req=route.request;path=urlparse(req.url).path
         if not path.startswith('/api/'):
             route.continue_();return
+        if path=='/api/settings':route.fulfill(json=dict(site_name='FamilyConnect',logo_url='/favicon.svg',theme='forest',registration_enabled=True));return
         params=parse_qs(urlparse(req.url).query);body=req.post_data_json if req.post_data else None
         state['requests'].append((req.method,path,params,body))
         if state['fail']:
