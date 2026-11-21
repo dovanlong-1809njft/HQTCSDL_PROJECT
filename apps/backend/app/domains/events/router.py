@@ -67,8 +67,10 @@ def get_event(event_id: UUID, current_user: CurrentUser, db: DbSession) -> Event
 @router.put("/{event_id}",response_model=EventResponse)
 def update_event(event_id: UUID,payload: EventUpdateRequest,current_user: CurrentUser,db: DbSession):
     def operation():
-        execute(db,"""EXEC community.usp_ManageEvent @ActorUserId=:actor,@EventId=:id,@Action='update',
-            @Title=:title,@EventDate=:event_date,@Location=:location""",dict(actor=current_user.id,id=event_id,**payload.model_dump(exclude={"family_id"}))).close()
+        if "end_date" not in payload.model_fields_set:
+            payload.end_date=get_event_service(event_id,current_user,db).end_date
+        execute(db,"""EXEC community.usp_UpdateEventSchedule @ActorUserId=:actor,@EventId=:id,
+            @Title=:title,@EventDate=:event_date,@Location=:location,@EndDate=:end_date""",dict(actor=current_user.id,id=event_id,**payload.model_dump(exclude={"family_id"}))).close()
         return get_event_service(event_id,current_user,db)
     return run(db,operation,write=True)
 

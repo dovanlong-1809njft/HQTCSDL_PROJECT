@@ -18,7 +18,7 @@ def list_monthly_events(
 ) -> list[Mapping[str, Any]]:
     """Gọi Function community.fn_GetMonthlyEvents để dựng lịch tháng."""
     if tz_offset:
-        stmt=text("""SELECT e.Id AS EventId,e.FamilyId,e.Title,e.EventDate,e.Location,
+        stmt=text("""SELECT e.Id AS EventId,e.FamilyId,e.Title,e.EventDate,e.EndDate,e.Location,
             (SELECT COUNT(*) FROM community.EventParticipants p WHERE p.EventId=e.Id AND p.RsvpStatus='Going') AS GoingCount
             FROM community.Events e WHERE FamilyId=:family_id
             AND EventDate>=DATEADD(MINUTE,-:tz_offset,CAST(DATEFROMPARTS(:year,:month,1) AS DATETIME2))
@@ -27,9 +27,9 @@ def list_monthly_events(
         return list(db.execute(stmt,dict(family_id=str(family_id),year=year,month=month,tz_offset=tz_offset)).mappings().all())
     stmt = text(
         """
-        SELECT EventId, FamilyId, Title, EventDate, Location, GoingCount
-        FROM community.fn_GetMonthlyEvents(:family_id, :year, :month)
-        ORDER BY EventDate
+        SELECT f.EventId, f.FamilyId, f.Title, f.EventDate, e.EndDate, f.Location, f.GoingCount
+        FROM community.fn_GetMonthlyEvents(:family_id, :year, :month) f JOIN community.Events e ON e.Id=f.EventId
+        ORDER BY f.EventDate
         """
     )
     return list(
@@ -42,7 +42,7 @@ def list_monthly_events(
 def get_event(db: Session, *, event_id: UUID,actor_id: UUID | None=None,for_update: bool=False) -> Mapping[str, Any] | None:
     stmt = text(
         f"""
-        SELECT e.Id AS EventId, e.FamilyId, e.Title, e.EventDate, e.Location,
+        SELECT e.Id AS EventId, e.FamilyId, e.Title, e.EventDate, e.EndDate, e.Location,
                (SELECT COUNT_BIG(*) FROM community.EventParticipants AS ep
                 WHERE ep.EventId = e.Id AND ep.RsvpStatus = N'Going') AS GoingCount,
                (SELECT ep.RsvpStatus FROM community.EventParticipants ep JOIN genealogy.Members m ON m.Id=ep.MemberId
@@ -61,12 +61,13 @@ def create_event(
     title: str,
     event_date: datetime,
     location: str | None,
+    end_date: datetime | None = None,
 ) -> UUID:
     stmt = text(
         """
-        INSERT INTO community.Events (FamilyId, Title, EventDate, Location)
+        INSERT INTO community.Events (FamilyId, Title, EventDate, EndDate, Location)
         OUTPUT inserted.Id
-        VALUES (:family_id, :title, :event_date, :location)
+        VALUES (:family_id, :title, :event_date, :end_date, :location)
         """
     )
     event_id = db.execute(
@@ -75,6 +76,7 @@ def create_event(
             "family_id": str(family_id),
             "title": title,
             "event_date": event_date,
+            "end_date": end_date,
             "location": location,
         },
     ).scalar_one()

@@ -1,3 +1,4 @@
+import {MemberHistoryPanel} from "../components/MemberHistoryPanel";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/features/auth/hooks/useAuth";
@@ -41,6 +42,7 @@ export function Profile() {
         {save.isError && <p role="alert" className="text-red-700">{getApiErrorMessage(save.error)}</p>}
         <button className={buttonClass} disabled={save.isPending}>{save.isPending ? "Đang lưu…" : "Lưu hồ sơ"}</button>
       </form>
+      {data.member ? <MemberHistoryPanel key={data.member.id} id={data.member.id} familyId={data.member.family_id} user={user}/> : <p className="rounded-xl bg-white p-4">Liên kết hồ sơ gia phả trước khi thêm học vấn và nghề nghiệp.</p>}
       {!data.member && user.role !== "guest" && <section className="space-y-4 rounded-2xl border border-stone-200 bg-white p-5">
         <h2 className="text-lg font-semibold text-forest">Liên kết hồ sơ gia phả</h2>
         <p className="text-sm text-stone-600">Nhập đúng tên gia đình và họ tên trong gia phả. Nếu chưa có hồ sơ, hãy nhờ người quản lý tạo trước.</p>

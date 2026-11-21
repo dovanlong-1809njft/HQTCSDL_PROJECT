@@ -20,7 +20,7 @@ BEGIN
         IF @Resource NOT IN ('educations','work') OR @Action NOT IN ('create','update','delete') THROW 51522,N'Thao tác không hợp lệ.',1;
         IF EXISTS(SELECT 1 FROM heritage.KnowledgeChunks WHERE SourceType='member' AND SourceId=@MemberId)
             THROW 51509,N'Hồ sơ đã được AI lập chỉ mục; cần đồng bộ chỉ mục trước khi sửa.',1;
-        IF @Action<>'delete' AND (@EndDate<@StartDate OR (@Resource='educations' AND NULLIF(LTRIM(RTRIM(@Institution)),N'') IS NULL)
+        IF @Action<>'delete' AND (@StartDate IS NULL OR @EndDate<@StartDate OR (@Resource='educations' AND (NULLIF(LTRIM(RTRIM(@Institution)),N'') IS NULL OR NULLIF(LTRIM(RTRIM(@Degree)),N'') IS NULL))
             OR (@Resource='work' AND (NULLIF(LTRIM(RTRIM(@Company)),N'') IS NULL OR NULLIF(LTRIM(RTRIM(@Position)),N'') IS NULL)))
             THROW 51522,N'Tên trường/công việc hoặc khoảng thời gian chưa hợp lệ.',1;
         IF @Resource='educations'
