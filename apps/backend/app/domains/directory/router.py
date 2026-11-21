@@ -20,10 +20,10 @@ Resource=Literal["educations","work"]
 
 class HistoryFields(BaseModel):
     model_config=ConfigDict(extra="forbid",str_strip_whitespace=True)
-    institution: str | None=Field(default=None,max_length=200)
-    degree: str | None=Field(default=None,max_length=200)
-    company: str | None=Field(default=None,max_length=200)
-    position: str | None=Field(default=None,max_length=200)
+    institution: str | None=Field(default=None,min_length=1,max_length=200)
+    degree: str | None=Field(default=None,min_length=1,max_length=200)
+    company: str | None=Field(default=None,min_length=1,max_length=200)
+    position: str | None=Field(default=None,min_length=1,max_length=200)
     start_date: date
     end_date: date | None=None
 

@@ -23,7 +23,7 @@ def inbox(db: DB,actor: Actor,page: int=Query(default=1,ge=1),page_size: int=Que
     def operation():
         params=dict(actor=actor.id,offset=(page-1)*page_size,limit=page_size)
         items=rows(db,f"""SELECT n.Id AS id,n.FamilyId AS family_id,n.EventId AS event_id,n.Title AS title,n.Body AS body,
-            n.CreatedAt AS created_at,n.ReadAt AS read_at FROM community.Notifications n WHERE {ACCESS}
+            n.CreatedAt AS created_at,n.ReadAt AS read_at,n.NotificationType AS notification_type FROM community.Notifications n WHERE {ACCESS}
             ORDER BY n.CreatedAt DESC,n.Id OFFSET :offset ROWS FETCH NEXT :limit ROWS ONLY""",**params)
         total=execute(db,f"SELECT COUNT(*) FROM community.Notifications n WHERE {ACCESS}",params).scalar_one()
         unread=execute(db,f"SELECT COUNT(*) FROM community.Notifications n WHERE {ACCESS} AND n.ReadAt IS NULL",params).scalar_one()

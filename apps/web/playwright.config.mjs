@@ -4,7 +4,7 @@ import {join} from "node:path";
 
 export default defineConfig({
   testDir:"../../tests/e2e",
-  testMatch:"ux-upgrades.spec.mjs",
+  testMatch:["ux-upgrades.spec.mjs","profile-events.spec.mjs"],
   outputDir:join(tmpdir(),"familyconnect-ux-playwright"),
   reporter:"list",
   workers:1,

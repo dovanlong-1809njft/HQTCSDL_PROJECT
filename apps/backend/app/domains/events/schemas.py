@@ -3,7 +3,7 @@
 from datetime import datetime,timezone
 from uuid import UUID
 
-from pydantic import BaseModel,ConfigDict, Field, HttpUrl, TypeAdapter,field_validator
+from pydantic import BaseModel,ConfigDict, Field, HttpUrl, TypeAdapter,field_validator,model_validator
 
 
 class EventCreateRequest(BaseModel):
@@ -11,15 +11,23 @@ class EventCreateRequest(BaseModel):
     family_id: UUID
     title: str = Field(min_length=1, max_length=200)
     event_date: datetime
+    end_date: datetime | None = None
     location: str = Field(min_length=1, max_length=500)
 
-    @field_validator("event_date")
+    @field_validator("event_date","end_date")
     @classmethod
     def utc_date(cls,value):
+        if value is None: return None
         value=value.astimezone(timezone.utc).replace(tzinfo=None) if value.tzinfo else value
         if not 1900<=value.year<=2200:
             raise ValueError("Thời gian sự kiện cần nằm trong năm 1900–2200.")
         return value
+
+    @model_validator(mode="after")
+    def valid_end(self):
+        if self.end_date is not None and self.end_date<=self.event_date:
+            raise ValueError("Thời gian kết thúc phải sau thời gian bắt đầu.")
+        return self
 
 
 class EventUpdateRequest(EventCreateRequest):
@@ -31,6 +39,7 @@ class EventResponse(BaseModel):
     family_id: UUID
     title: str
     event_date: datetime
+    end_date: datetime | None = None
     location: str | None = None
     going_count: int = 0
     my_rsvp: str | None=None

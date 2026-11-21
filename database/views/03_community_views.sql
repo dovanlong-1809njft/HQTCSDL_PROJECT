@@ -59,6 +59,7 @@ RETURN
         e.[FamilyId],
         e.[Title],
         e.[EventDate],
+        e.[EndDate],
         e.[Location],
         (SELECT COUNT_BIG(*)
          FROM [community].[EventParticipants] AS ep

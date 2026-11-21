@@ -25,6 +25,7 @@ logger = logging.getLogger("worker")
 def main() -> None:
     # Import sau khi đã nối sys.path tới backend.
     from jobs.event_reminder import run_once
+    from jobs.event_completion import run_once as complete_events
 
     stopped=Event()
     for sig in (signal.SIGINT,signal.SIGTERM):
@@ -33,6 +34,8 @@ def main() -> None:
     while not stopped.is_set():
         try: run_once()
         except Exception: logger.exception('Reminder pass failed; retrying next pass')
+        try: complete_events()
+        except Exception: logger.exception("Event completion pass failed; retrying next pass")
         stopped.wait(15)
 
 

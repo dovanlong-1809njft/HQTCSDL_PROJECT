@@ -30,6 +30,7 @@ def _to_event_response(row) -> EventResponse:
         family_id=row["FamilyId"],
         title=row["Title"],
         event_date=row["EventDate"],
+        end_date=row.get("EndDate"),
         location=row["Location"],
         going_count=int(row["GoingCount"] or 0),
         my_rsvp=row.get("MyRsvp"),
@@ -64,6 +65,7 @@ def create_event_service(payload: EventCreateRequest, actor: User, db: Session) 
             family_id=payload.family_id,
             title=payload.title.strip(),
             event_date=payload.event_date,
+            end_date=payload.end_date,
             location=payload.location,
         )
     except DBAPIError as exc:
