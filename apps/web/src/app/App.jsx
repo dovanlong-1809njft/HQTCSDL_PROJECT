@@ -7,6 +7,7 @@ import { Login } from "@/features/auth/pages/Login";
 import { Register } from "@/features/auth/pages/Register";
 import { ProtectedRoute } from "@/features/auth/components/ProtectedRoute";
 import { AdminConfig } from "@/features/admin-config/pages/AdminConfig";
+import { Backups } from "@/features/backups/Backups";
 import { SiteSettingsProvider } from "@/features/admin-config/SiteSettings";
 import { MemberApproval } from "@/features/member-approval/pages/MemberApproval";
 import { Reports } from "@/features/reports/pages/Reports";
@@ -95,6 +96,7 @@ export function App() {
                 </Route>
                 <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
                   <Route path="/admin-config" element={<AdminConfig />} />
+                  <Route path="/admin-backups" element={<Backups />} />
                   <Route path="/reports" element={<Reports />} />
                 </Route>
                 <Route

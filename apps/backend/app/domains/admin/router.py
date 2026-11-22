@@ -1,12 +1,18 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_db, require_role
+from app.core.security import verify_password
 from app.domains.admin import services
+from app.domains.admin.backups import DatabaseBackups, get_database_backups
 from app.domains.admin.schemas import (
+    BackupResponse,
+    BackupsResponse,
+    RestoreRequest,
+    RestoreResponse,
     ConfigKey,
     FamilyActivityResponse,
     PendingVerificationResponse,
@@ -31,6 +37,40 @@ Admin = Annotated[User, Depends(require_role("admin"))]
 Reviewer = Annotated[User, Depends(require_role("admin", "family_head"))]
 PageLimit = Annotated[int, Query(ge=1, le=200)]
 PageOffset = Annotated[int, Query(ge=0, le=2147483647)]
+Backups = Annotated[DatabaseBackups, Depends(get_database_backups)]
+
+
+@router.get("/backups", response_model=BackupsResponse)
+def list_backups(current_user: Admin, backups: Backups, response: Response):
+    response.headers["Cache-Control"] = "no-store"
+    return backups.list()
+
+
+@router.post("/backups", response_model=BackupResponse, status_code=201)
+def create_backup(current_user: Admin, backups: Backups):
+    return backups.create(current_user.id)
+
+
+@router.delete("/backups/{backup_id}", status_code=204)
+def delete_backup(backup_id: UUID, current_user: Admin, backups: Backups):
+    backups.delete(backup_id, current_user.id)
+    return Response(status_code=204)
+
+
+@router.post("/backups/{backup_id}/restore", response_model=RestoreResponse)
+def restore_backup(backup_id: UUID, payload: RestoreRequest, db: Database,
+                   current_user: Admin, backups: Backups):
+    if payload.database != backups.database:
+        raise HTTPException(422, "Nhập chính xác tên database để xác nhận khôi phục.")
+    if not verify_password(payload.password.get_secret_value(), current_user.password_hash):
+        raise HTTPException(403, "Mật khẩu quản trị không đúng.")
+    actor_id = current_user.id
+    # Release our own read connection before taking the exclusive maintenance lock.
+    db.close()
+    release = db.info.pop("release_database_access", None)
+    if release:
+        release()
+    return backups.restore(backup_id, actor_id)
 
 
 @public_router.get("", response_model=SiteSettings)

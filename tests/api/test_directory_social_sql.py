@@ -1,5 +1,6 @@
 from datetime import datetime,timedelta,timezone
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import nullcontext
 from threading import Event
 import sys
 from pathlib import Path
@@ -237,6 +238,7 @@ def test_cancelled_reminders_are_not_scheduled_or_dispatched(feature_api,monkeyp
     sys.path.insert(0,str(Path(__file__).resolve().parents[2]/'apps/worker'))
     from jobs import event_reminder
     monkeypatch.setattr(event_reminder,'SessionLocal',lambda:Session(bind=engine))
+    monkeypatch.setattr(event_reminder,'database_access',nullcontext)
     assert event_reminder.run_once()==0
     assert request(client,'GET','/notifications').json()['total']==0
 

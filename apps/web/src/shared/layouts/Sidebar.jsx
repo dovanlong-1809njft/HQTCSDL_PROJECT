@@ -149,6 +149,12 @@ export function Sidebar({ role, open, onClose }) {
                   icon: "flag",
                   to: "/reports",
                 })}
+              {role === "admin" &&
+                navLink({
+                  label: "Sao lưu & khôi phục",
+                  icon: "shield-check",
+                  to: "/admin-backups",
+                })}
             </nav>
           </div>
         )}

@@ -4,6 +4,7 @@ import { Icon } from "@/shared/components/Icon";
 import { useSiteSettings } from "@/features/admin-config/SiteSettings";
 
 const pageNames = { "/directory":"Danh bạ", "/community":"Bảng tin", "/events":"Lịch gia đình", "/notifications":"Thông báo", "/dashboard": "Tổng quan", "/profile": "Hồ sơ của tôi", "/family-management": "Gia đình và thành viên", "/family-tree": "Cây gia phả", "/heritage": "Di sản", "/admin-config": "Cấu hình hệ thống", "/member-approval": "Duyệt thành viên", "/reports": "Báo cáo nội dung" };
+pageNames["/admin-backups"] = "Sao lưu & khôi phục";
 const roles = { admin: "Quản trị viên", family_head: "Trưởng chi", member: "Thành viên", guest: "Khách" };
 
 export function Navbar({ onMenuClick, sidebarOpen }) {
