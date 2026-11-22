@@ -3,7 +3,7 @@ from typing import Annotated, Literal
 from uuid import UUID
 from urllib.parse import urlsplit
 
-from pydantic import BaseModel, ConfigDict, Field, StrictBool, StringConstraints, field_validator
+from pydantic import BaseModel, ConfigDict, Field, SecretStr, StrictBool, StringConstraints, field_validator
 
 
 ConfigKey = Annotated[str, StringConstraints(min_length=1, max_length=100, pattern=r"^[A-Za-z0-9_.-]+$")]
@@ -49,6 +49,29 @@ SITE_CONFIG_KEYS = {
 
 class AdminSchema(BaseModel):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+
+class BackupResponse(AdminSchema):
+    id: UUID
+    file_name: str
+    created_at: datetime
+    size_bytes: int
+
+
+class BackupsResponse(AdminSchema):
+    database: str
+    backups: list[BackupResponse]
+
+
+class RestoreRequest(AdminSchema):
+    database: str = Field(min_length=1, max_length=128)
+    password: SecretStr = Field(min_length=1, max_length=128)
+
+
+class RestoreResponse(AdminSchema):
+    database: str
+    safety_backup_id: UUID
+    message: str
 
 
 class SystemConfigCreate(AdminSchema):

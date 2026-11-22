@@ -32,11 +32,12 @@ SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
 
 def get_db() -> Generator[Session, None, None]:
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+    from app.core.maintenance import database_access
+
+    with database_access() as release:
+        with SessionLocal() as db:
+            db.info["release_database_access"] = release
+            yield db
 
 
 __all__ = ["Base", "SessionLocal", "database_url", "engine", "get_db"]
