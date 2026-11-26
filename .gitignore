@@ -21,3 +21,5 @@ database/backups/
 .idea/
 .DS_Store
 Thumbs.db
+ket_qua_smoke_test.txt
+chay_smoke_test.ps1
