@@ -13,8 +13,10 @@ DECLARE @U UNIQUEIDENTIFIER = NEWID(), @F UNIQUEIDENTIFIER = NEWID(),
         @P UNIQUEIDENTIFIER, @E UNIQUEIDENTIFIER = NEWID(),
         @M UNIQUEIDENTIFIER = NEWID();
 
-INSERT core.Users (UserId, Email, PasswordHash, FullName)
-VALUES (@U, N'tv3.test@example.invalid', N'TEST-ONLY', N'TV3 Test');
+-- Vai tro admin de bo qua kiem tra thanh vien gia dinh trong
+-- heritage.usp_AssertFamilyAccess (chi admin moi duoc mien).
+INSERT core.Users (UserId, Email, PasswordHash, FullName, Role, IsActive)
+VALUES (@U, N'tv3.test@example.invalid', N'TEST-ONLY', N'TV3 Test', N'admin', 1);
 INSERT core.Families (Id, Name) VALUES (@F, N'Gia dinh test');
 
 -- 1. Tao bai viet kem 2 anh -> vw_NewsfeedPosts phai co MediaUrls 2 anh
