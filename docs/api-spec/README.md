@@ -7,3 +7,7 @@ FastAPI tạo OpenAPI tại http://localhost:8000/docs.
 ERD có 22 bảng. Danh bạ dùng Educations và WorkHistories; cộng đồng có PostMedia và ReportedContents; sự kiện có EventReminders và EventGalleries; di sản có Honors; cấu hình có SystemConfigs. SQL đã có các bảng này, nhưng API CRUD tương ứng chưa triển khai.
 
 API mới phải kiểm tra JWT và quyền theo gia đình/chi nhánh. Members không còn Occupation. ReportedContents.TargetId là quan hệ đa hình cần xác thực theo TargetType. SystemConfigs không lưu bí mật.
+
+## Đặc tả chi tiết theo phân hệ
+
+- [API Cộng đồng & Sự kiện](community-events.md) — 26 endpoint của `community` và `events`.
