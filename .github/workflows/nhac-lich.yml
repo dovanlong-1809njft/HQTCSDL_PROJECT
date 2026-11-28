@@ -1,0 +1,62 @@
+# Quét nhắc nhở sự kiện và đẩy thông báo ra điện thoại, chạy trên máy của
+# GitHub nên không cần bật laptop.
+#
+# ĐIỀU KIỆN: database phải nằm ở nơi truy cập được từ Internet (xem
+# docs/deployment/mobile-push.md). Máy chạy của GitHub không vào được SQL Server
+# đang nằm trong Docker trên máy cá nhân.
+#
+# Cần khai báo trong Settings > Secrets and variables > Actions:
+#   MSSQL_HOST, MSSQL_PORT, MSSQL_DB, MSSQL_USER, MSSQL_SA_PASSWORD
+#   JWT_SECRET_KEY            (worker không phát hành token, nhưng cấu hình
+#                              backend bắt buộc có biến này)
+#   FCM_SERVICE_ACCOUNT_JSON  (dán toàn bộ nội dung tệp JSON service account)
+name: Nhac lich va day thong bao
+
+on:
+  schedule:
+    # Mỗi 15 phút. GitHub chỉ cho nhanh nhất 5 phút và có thể chạy trễ vài phút
+    # vào giờ cao điểm, nên đừng đặt nhắc nhở sát giờ quá.
+    - cron: "*/15 * * * *"
+  # Cho phép bấm chạy tay để thử ngay, không phải đợi tới lịch.
+  workflow_dispatch:
+
+# Không để hai lượt quét chạy chồng nhau.
+concurrency:
+  group: nhac-lich
+  cancel-in-progress: false
+
+jobs:
+  quet:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Cai thu vien
+        run: pip install -r apps/worker/requirements.txt
+
+      - name: Ghi tep service account cua FCM
+        env:
+          FCM_JSON: ${{ secrets.FCM_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ -n "$FCM_JSON" ]; then
+            printf '%s' "$FCM_JSON" > "$RUNNER_TEMP/fcm.json"
+          fi
+
+      - name: Chay mot luot quet
+        working-directory: apps/worker
+        env:
+          MSSQL_HOST: ${{ secrets.MSSQL_HOST }}
+          MSSQL_PORT: ${{ secrets.MSSQL_PORT }}
+          MSSQL_DB: ${{ secrets.MSSQL_DB }}
+          MSSQL_USER: ${{ secrets.MSSQL_USER }}
+          MSSQL_SA_PASSWORD: ${{ secrets.MSSQL_SA_PASSWORD }}
+          JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
+          FCM_SERVICE_ACCOUNT_FILE: ${{ runner.temp }}/fcm.json
+        run: python run_once.py

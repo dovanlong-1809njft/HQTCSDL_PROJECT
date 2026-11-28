@@ -9,6 +9,7 @@ from app.domains.heritage.router import router as heritage_router
 from app.domains.genealogy.router import router as genealogy_router
 from app.domains.directory.router import router as directory_router
 from app.domains.notifications.router import router as notifications_router
+from app.domains.notifications.devices import router as devices_router
 from app.domains.community.uploads import router as uploads_router
 
 api_router = APIRouter()
@@ -22,4 +23,5 @@ api_router.include_router(heritage_router)
 api_router.include_router(genealogy_router)
 api_router.include_router(directory_router)
 api_router.include_router(notifications_router)
+api_router.include_router(devices_router)
 api_router.include_router(uploads_router)
