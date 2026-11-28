@@ -152,6 +152,10 @@ Người dùng chỉ được xem hoặc sửa dữ liệu thuộc phạm vi gia
 - Dashboard và chức năng quản trị chỉ hiển thị dữ liệu mà vai trò được phép xem.
 - Có hướng dẫn khởi tạo database, cấu hình môi trường và chạy ứng dụng; các luồng chính được kiểm thử.
 
-## 9. Các bước tiếp theo
+## 9. Đặc tả chi tiết theo phân hệ
+
+- [Cộng đồng & Sự kiện](community-events.md) — bảng tin, bình luận, cảm xúc, báo cáo vi phạm, sự kiện, RSVP, nhắc lịch và thông báo đẩy.
+
+## 10. Các bước tiếp theo
 
 Nhóm rà soát và thống nhất các câu hỏi ở mục 7; sau đó đồng bộ ERD, schema và seed; API/giao diện nghiệp vụ sẽ được triển khai theo ca sử dụng. Nếu quy tắc nghiệp vụ thay đổi trong quá trình làm, nhóm cập nhật lại tài liệu này.

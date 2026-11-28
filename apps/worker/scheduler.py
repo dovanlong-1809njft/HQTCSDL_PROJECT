@@ -26,6 +26,7 @@ def main() -> None:
     # Import sau khi đã nối sys.path tới backend.
     from jobs.event_reminder import run_once
     from jobs.event_completion import run_once as complete_events
+    from jobs.push_notification import run_once as push_notifications
 
     stopped=Event()
     for sig in (signal.SIGINT,signal.SIGTERM):
@@ -36,6 +37,9 @@ def main() -> None:
         except Exception: logger.exception('Reminder pass failed; retrying next pass')
         try: complete_events()
         except Exception: logger.exception("Event completion pass failed; retrying next pass")
+        # Đẩy thông báo ra điện thoại; bỏ qua khi chưa cấu hình FCM.
+        try: push_notifications()
+        except Exception: logger.exception("Push notification pass failed; retrying next pass")
         stopped.wait(15)
 
 

@@ -1,1 +1,3 @@
 -r ../backend/requirements.txt
+google-auth>=2.40
+requests>=2.32
